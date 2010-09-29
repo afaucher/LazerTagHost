@@ -36,16 +36,28 @@ namespace LazerTagHost
 	
 	class HostGun
 	{
+		private struct GameState {
+			public CommandCode game_type;
+			public byte game_time_minutes;
+			public byte tags;
+			public byte reloads;
+			public byte sheild;
+			public byte mega;
+			public bool team_tag;
+			public bool medic_mode;
+			public byte number_of_teams;
+		};
+		
 		private struct AddingState {
 			public DateTime next_adv;
-			public LinkedList<IRPacket> packets;
+			//public LinkedList<IRPacket> packets;
 			public DateTime game_start_timeout;
 		};
 		
 		private struct ConfirmJoinState {
 			public byte player_id;
 			public DateTime confirm_timeout;	
-			public LinkedList<IRPacket> packets;
+			//public LinkedList<IRPacket> packets;
 		};
 		
 		private struct CountdownState {
@@ -72,6 +84,8 @@ namespace LazerTagHost
 		
 		private enum CommandCode {
 			COMMAND_CODE_CUSTOM_GAME_MODE_HOST = 0x02,
+			COMMAND_CODE_2TMS_GAME_MODE_HOST = 0x03,
+			COMMAND_CODE_3TMS_GAME_MODE_HOST = 0x04,
 			COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST = 0x10,
 			COMMAND_CODE_ACK_PLAYER_JOIN_RESPONSE = 0x01,
 			COMMAND_CODE_CONFIRM_PLAY_JOIN_GAME = 0x11,
@@ -87,9 +101,10 @@ namespace LazerTagHost
 		private const int WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS = 60;
 		private const int GAME_START_COUNTDOWN_INTERVAL_SECONDS = 30;
 		private const int GAME_TIME_DURATION_MINUTES = 1;
-		private const bool autostart = false;
+		private const bool autostart = true;
 		
 		//host gun state
+		private GameState game_state;
 		private HostingState hosting_state = HostGun.HostingState.HOSTING_STATE_IDLE;
 		private AddingState adding_state;
 		private ConfirmJoinState confirm_join_state;
@@ -97,6 +112,94 @@ namespace LazerTagHost
 		private SummaryState summary_state;
 		private PlayingState playing_state;
 		private LinkedList<Player> players = new LinkedList<Player>();
+		
+		private LinkedList<IRPacket> incoming_packet_queue = new LinkedList<IRPacket>();
+		
+		private void BaseGameSet(byte game_time_minutes, 
+		                              byte tags,
+		                              byte reloads,
+		                              byte sheilds,
+		                              byte mega,
+		                              bool team_tag,
+		                              bool medic_mode)
+		{
+			game_state.game_time_minutes = game_time_minutes;
+			game_state.tags = tags;
+			game_state.reloads = reloads;
+			game_state.sheild = sheilds;
+			game_state.mega = mega;
+			game_state.team_tag = team_tag;
+			game_state.medic_mode = medic_mode;
+			game_id = (byte)(new Random().Next());
+		}
+		
+		public void Init2TeamHostMode(byte game_time_minutes, 
+		                              byte tags,
+		                              byte reloads,
+		                              byte sheilds,
+		                              byte mega,
+		                              bool team_tag,
+		                              bool medic_mode)
+		{
+			game_state.game_type = CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST;
+			BaseGameSet(game_time_minutes,
+			            tags,
+                        reloads,
+                        sheilds,
+                        mega,
+                        team_tag,
+                        medic_mode);
+			game_state.number_of_teams = 2;
+		}
+		
+		public void Init3TeamHostMode(byte game_time_minutes, 
+		                              byte tags,
+		                              byte reloads,
+		                              byte sheilds,
+		                              byte mega,
+		                              bool team_tag,
+		                              bool medic_mode)
+		{
+			game_state.game_type = CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST;
+			BaseGameSet(game_time_minutes,
+			            tags,
+                        reloads,
+                        sheilds,
+                        mega,
+                        team_tag,
+                        medic_mode);
+			game_state.number_of_teams = 3;
+		}
+		
+		public void InitCustomHostMode(byte game_time_minutes, 
+		                              byte tags,
+		                              byte reloads,
+		                              byte sheilds,
+		                              byte mega,
+		                              bool team_tag,
+		                              bool medic_mode)
+		{
+			game_state.game_type = CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
+			BaseGameSet(game_time_minutes,
+			            tags,
+                        reloads,
+                        sheilds,
+                        mega,
+                        team_tag,
+                        medic_mode);
+			game_state.number_of_teams = 1;
+		}
+		
+		private void TransmitPacket(ref UInt16[][] values)
+		{
+			string debug = "TX: ";
+			
+			foreach (UInt16[] packet in values) {
+				TransmitBytes(packet[1],packet[0]);
+				debug += String.Format("{0:x},", packet[1]);
+			}
+			MainClass.HostDebugWriteLine(debug);
+		}
 		
 		private void TransmitBytes(UInt16 data, UInt16 number_of_bits)
 		{
@@ -106,41 +209,63 @@ namespace LazerTagHost
 			};
 			serial_port.Write( packet, 0, 2 );
 			serial_port.BaseStream.Flush();
-			string debug = String.Format("TX: {0:x}, {1:d}", new object[] {data, number_of_bits});
-			MainClass.HostDebugWriteLine(debug);
+			//string debug = String.Format("TX: {0:x}, {1:d}", new object[] {data, number_of_bits});
+			//MainClass.HostDebugWriteLine(debug);
 			System.Threading.Thread.Sleep(100);
 		}
 		
 		public HostGun(string device) {
 			serial_port = new SerialPort(device, 115200);
 			serial_port.Open();
-			
-			adding_state.packets = new LinkedList<IRPacket>();
-			game_id = (byte)(new Random().Next());
-			confirm_join_state.packets = new LinkedList<IRPacket>();
 		}
 		
-		private bool ProcessPacket(IRPacket.PacketType type, UInt16 data, UInt16 number_of_bits)
+		private static string GetCommandCodeName(CommandCode code)
+		{
+			Enum c = code;
+			return c.ToString();
+		}
+		
+		private bool ProcessCommandSequence()
 		{
 			DateTime now = DateTime.Now;
 			
 			switch (hosting_state) {
 			case HostingState.HOSTING_STATE_ADDING:
 			{
-				adding_state.packets.AddLast(new IRPacket(type, data, number_of_bits));
-				if (adding_state.packets.Count == 5) {
-					//TODO Check Checksum
-					IRPacket game_id_packet = adding_state.packets.First.Next.Value;
-					IRPacket player_id_packet = adding_state.packets.First.Next.Next.Value;
+				
+				if (incoming_packet_queue.Count == 4) {
+					
+					IRPacket command_packet = incoming_packet_queue.First.Value;
+					IRPacket game_id_packet = incoming_packet_queue.First.Next.Value;
+					IRPacket player_id_packet = incoming_packet_queue.First.Next.Next.Value;
+					IRPacket player_team_request_packet = incoming_packet_queue.First.Next.Next.Next.Value;
 					UInt16 player_id = player_id_packet.data;
 					
+					if ((CommandCode)command_packet.data != CommandCode.COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST) {
+						MainClass.HostDebugWriteLine("Wrong command");
+						return false;
+					}
+					
 					confirm_join_state.player_id = (byte)player_id;
+					
+					UInt16 team_request = (UInt16)(player_team_request_packet.data & 0x03);
+					/* 
+					 * 0 = any
+					 * 1-3 = team 1-3
+					 */
+					
+					//TODO: Pick team/player index
+					int team_assignment = 3;
+					int player_assignment = 0;
+					UInt16 team_response = (UInt16)((team_assignment << 3) | (player_assignment));
+					
 					
 					UInt16[][] values = new UInt16[][]{
 						new UInt16[] {0x9,0x01},
 						new UInt16[] {0x8,game_id},//Game ID
 						new UInt16[] {0x8,player_id},//Player ID
-						new UInt16[] {0x8,0x9}, //player #
+						new UInt16[] {0x8,team_response}, //player #
+						// [3 bits - zero - unknown][2 bits - team assignment][3 bits - unknown]
 						new UInt16[] {0x9,0x100},
 					};
 					ChecksumSequence(ref values);
@@ -154,11 +279,9 @@ namespace LazerTagHost
 					string debug = String.Format("Player {0:x} found, joining", new object[] { player_id });
 					MainClass.HostDebugWriteLine(debug);
 					
-					foreach (UInt16[] packet in values) {
-						TransmitBytes(packet[1],packet[0]);
-					}
+					TransmitPacket(ref values);
 					
-					adding_state.packets.Clear();
+					incoming_packet_queue.Clear();
 					
 					hosting_state = HostGun.HostingState.HOSTING_STATE_CONFIRM_JOIN;
 					confirm_join_state.confirm_timeout = now.AddSeconds(2);
@@ -168,14 +291,19 @@ namespace LazerTagHost
 			}
 			case HostingState.HOSTING_STATE_CONFIRM_JOIN:
 			{
-				confirm_join_state.packets.AddLast(new IRPacket(type, data, number_of_bits));
 				
-				if (confirm_join_state.packets.Count == 4) {
-					//TODO Check Checksum
-					IRPacket game_id_packet = confirm_join_state.packets.First.Next.Value;
-					IRPacket player_id_packet = confirm_join_state.packets.First.Next.Next.Value;
+				if (incoming_packet_queue.Count == 3) {
+					
+					IRPacket command_packet = incoming_packet_queue.First.Value;
+					IRPacket game_id_packet = incoming_packet_queue.First.Next.Value;
+					IRPacket player_id_packet = incoming_packet_queue.First.Next.Next.Value;
 					UInt16 confirmed_game_id = game_id_packet.data;
 					UInt16 confirmed_player_id = player_id_packet.data;
+					
+					if ((CommandCode)command_packet.data != CommandCode.COMMAND_CODE_CONFIRM_PLAY_JOIN_GAME) {
+						MainClass.HostDebugWriteLine("Wrong command");
+						return false;
+					}
 					
 					if (game_id != confirmed_game_id
 					    || confirm_join_state.player_id != confirmed_player_id)
@@ -195,7 +323,7 @@ namespace LazerTagHost
 					players.AddLast(new Player((byte)confirmed_game_id));
 					adding_state.game_start_timeout = now.AddSeconds(WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS);
 					hosting_state = HostGun.HostingState.HOSTING_STATE_ADDING;
-					confirm_join_state.packets.Clear();
+					incoming_packet_queue.Clear();
 				}
 				
 				return true;
@@ -203,6 +331,54 @@ namespace LazerTagHost
 			default:
 				break;
 			}
+			return false;
+		}
+		
+		private string SerializeCommandSequence(ref LinkedList<IRPacket> packets)
+		{
+			string command = "SEQ:";
+			foreach (IRPacket packet in packets) {
+				command += String.Format("{{ {0:x}, {1:d} :}}", packet.data, packet.number_of_bits);
+			}
+			return command;
+		}
+		
+		private bool ProcessPacket(IRPacket.PacketType type, UInt16 data, UInt16 number_of_bits)
+		{
+			//DateTime now = DateTime.Now;
+			
+			if (type != IRPacket.PacketType.PACKET_TYPE_LTX) return false;
+			
+			if (number_of_bits == 9)
+			{
+				if ((data & 0x100) != 0) {
+					//end sequence
+					if ((data & 0xff) == ComputeChecksum(ref incoming_packet_queue)) {
+						MainClass.HostDebugWriteLine("Command: " 
+						                             + GetCommandCodeName((CommandCode)data) 
+						                             + " " 
+						                             + SerializeCommandSequence(ref incoming_packet_queue));
+						ProcessCommandSequence();
+					} else {
+						MainClass.HostDebugWriteLine("Invalid Checksum");
+					}
+					incoming_packet_queue.Clear();
+				} else {
+					//start sequence
+					incoming_packet_queue.AddLast(new IRPacket(type, data, number_of_bits));
+				}
+			} else if (number_of_bits == 8
+			           && incoming_packet_queue.Count > 0)
+			{
+				//mid sequence
+				incoming_packet_queue.AddLast(new IRPacket(type, data, number_of_bits));
+			} else if (number_of_bits == 8) {
+				//junk
+				MainClass.HostDebugWriteLine("Unknown packet, clearing queue");
+				incoming_packet_queue.Clear();
+			}
+			
+			
 			return false;
 		}
 		
@@ -231,6 +407,9 @@ namespace LazerTagHost
 		
 		static public byte DecimalToDecimalHex(byte d)
 		{
+			//Unlimited
+			if (d == 0xff) return d;
+			//Otherwise
 			byte result = (byte)(((d / 10) << 4) | (d % 10));
 			return result;
 		}
@@ -241,6 +420,18 @@ namespace LazerTagHost
 			byte sum = 0;
 			for (i = 0; i < values.Length - 1; i++) {
 				sum += (byte)values[i][1];
+			}
+			return sum;
+		}
+		
+		public byte ComputeChecksum(ref LinkedList<IRPacket> values)
+		{
+			byte sum = 0;
+			foreach (IRPacket packet in values) {
+				//don't add the checksum value in
+				if ((packet.data & 0x100) == 0) {
+					sum += (byte)packet.data;
+				}
 			}
 			return sum;
 		}
@@ -262,7 +453,7 @@ namespace LazerTagHost
 			
 			if (serial_port.BytesToRead > 0) {
 				string input = serial_port.ReadLine();
-				MainClass.HostDebugWriteLine("RX: " + input);
+				
 				int command_length = input.IndexOf(':');
 				if (command_length > 0) {
 					string command = input.Substring(0,command_length);
@@ -273,6 +464,8 @@ namespace LazerTagHost
 					
 					ProcessMessage(command, paramters);
 					
+				} else {
+					MainClass.HostDebugWriteLine("DEBUG: " + input);
 				}
 			}
 			
@@ -283,7 +476,8 @@ namespace LazerTagHost
 				if (autostart) {
 					hosting_state = HostingState.HOSTING_STATE_ADDING;
 					adding_state.next_adv = DateTime.Now;
-					adding_state.packets.Clear();
+					incoming_packet_queue.Clear();
+					Init2TeamHostMode(10,10,0xff,15,10,false,false);
 				}
 				break;
 			}
@@ -291,24 +485,37 @@ namespace LazerTagHost
 			{
 				if (now.CompareTo(adding_state.next_adv) > 0) {
 					
-					adding_state.packets.Clear();
+					incoming_packet_queue.Clear();
+					
+					byte flags = 0x20;
+						flags |= game_state.medic_mode ? (byte)0x08 : (byte)0x00;
+						flags |= game_state.team_tag ? (byte)0x10 : (byte)0x00;
 					
 					UInt16[][] values = new UInt16[][]{
-						new UInt16[] {0x9,0x02},
+						new UInt16[] {0x9,(UInt16)game_state.game_type},
 						new UInt16[] {0x8,game_id},//Game ID
-						new UInt16[] {0x8,0x10}, //game time minutes
+						/*new UInt16[] {0x8,0x10}, //game time minutes
 						new UInt16[] {0x8,0x10}, //tags
 						new UInt16[] {0x8,0xFF}, //reloads
 						new UInt16[] {0x8,0x15}, //sheild
 						new UInt16[] {0x8,0x10}, //mega
-						new UInt16[] {0x8,0x20},
-						new UInt16[] {0x8,0x01},
+						new UInt16[] {0x8,0x38}, //unknown/team/medic/unknown
+						//[3 bits - b001 - unknown][1 bit - team tag][1 bit - medic mode][3 bits - 0x0 - unknown]
+						new UInt16[] {0x8,0x02}, //number of teams
+						*/
+						new UInt16[] {0x8,DecimalToDecimalHex(game_state.game_time_minutes)}, //game time minutes
+						new UInt16[] {0x8,DecimalToDecimalHex(game_state.tags)}, //tags
+						new UInt16[] {0x8,DecimalToDecimalHex(game_state.reloads)}, //reloads
+						new UInt16[] {0x8,DecimalToDecimalHex(game_state.sheild)}, //sheild
+						new UInt16[] {0x8,DecimalToDecimalHex(game_state.mega)}, //mega
+						new UInt16[] {0x8,flags}, //unknown/team/medic/unknown
+						//[3 bits - b001 - unknown][1 bit - team tag][1 bit - medic mode][3 bits - 0x0 - unknown]
+						new UInt16[] {0x8,DecimalToDecimalHex(game_state.number_of_teams)}, //number of teams
 						new UInt16[] {0x9,0x100},
 					};
 					ChecksumSequence(ref values);
-					foreach (UInt16[] packet in values) {
-						TransmitBytes(packet[1],packet[0]);
-					}
+					
+					TransmitPacket(ref values);
 					
 					adding_state.next_adv = now.AddSeconds(ADDING_ADVERTISEMENT_INTERVAL_SECONDS);
 				} else if (players.Count >= 1
@@ -329,7 +536,7 @@ namespace LazerTagHost
 				if (now.CompareTo(confirm_join_state.confirm_timeout) > 0) {
 					MainClass.HostDebugWriteLine("No confirmation on timeout");
 					hosting_state = HostGun.HostingState.HOSTING_STATE_ADDING;
-					confirm_join_state.packets.Clear();
+					incoming_packet_queue.Clear();
 				}
 				break;
 			}
@@ -339,7 +546,7 @@ namespace LazerTagHost
 					MainClass.HostDebugWriteLine("Starting Game");
 					hosting_state = HostGun.HostingState.HOSTING_STATE_PLAYING;
 					playing_state.game_end = now.AddMinutes(GAME_TIME_DURATION_MINUTES);
-				} else if (countdown_state.last_tick.AddSeconds(1).Second < now.Second) {
+				} else if (countdown_state.last_tick.AddSeconds(1) < now) {
 					countdown_state.last_tick = now;
 					
 					int seconds_left = (countdown_state.game_start - now).Seconds;
@@ -353,9 +560,7 @@ namespace LazerTagHost
 						new UInt16[] {0x9,0x100},
 					};
 					ChecksumSequence(ref values);
-					foreach (UInt16[] packet in values) {
-						TransmitBytes(packet[1],packet[0]);
-					}
+					TransmitPacket(ref values);
 					MainClass.HostDebugWriteLine("T-" + seconds_left);
 				}
 				break;
@@ -380,9 +585,7 @@ namespace LazerTagHost
 						new UInt16[] {0x9,0x100},
 					};
 					ChecksumSequence(ref values);
-					foreach (UInt16[] packet in values) {
-						TransmitBytes(packet[1],packet[0]);
-					}
+					TransmitPacket(ref values);
 				}
 				break;
 			}
