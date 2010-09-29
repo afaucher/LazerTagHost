@@ -97,7 +97,9 @@ namespace LazerTagHost
 			COMMAND_CODE_CONFIRM_PLAY_JOIN_GAME = 0x11,
 			COMMAND_CODE_COUNTDOWN_TO_GAME_START = 0x00,
 			COMMAND_CODE_SCORE_ANNOUNCEMENT = 0x31,
+			COMMAND_CODE_GAME_OVER = 0x32, //? unconfirmed
 			COMMAND_CODE_PLAYER_REPORT_SCORE = 0x40,
+			COMMAND_CODE_RANK_REPORT = 0x42, //? unconfirmed
 		};
 		
 		private byte game_id = 0x00;
@@ -347,7 +349,7 @@ namespace LazerTagHost
 		{
 			string command = "SEQ:";
 			foreach (IRPacket packet in packets) {
-				command += String.Format("{{ {0:x}, {1:d} :}}", packet.data, packet.number_of_bits);
+				command += String.Format("{0:x},", packet.data);
 			}
 			return command;
 		}
@@ -364,7 +366,7 @@ namespace LazerTagHost
 					//end sequence
 					if ((data & 0xff) == ComputeChecksum(ref incoming_packet_queue)) {
 						MainClass.HostDebugWriteLine("Command: " 
-						                             + GetCommandCodeName((CommandCode)data) 
+						                             + GetCommandCodeName((CommandCode)(incoming_packet_queue.First.Value.data)) 
 						                             + " " 
 						                             + SerializeCommandSequence(ref incoming_packet_queue));
 						ProcessCommandSequence();
@@ -589,7 +591,8 @@ namespace LazerTagHost
 					UInt16[][] values = new UInt16[][]{
 						new UInt16[] {0x9,0x31},
 						new UInt16[] {0x8,game_id},//Game ID
-						new UInt16[] {0x8,0x11},
+						new UInt16[] {0x8,0x37},//unknown
+						// [ 4 bits - team ] [ 4 bits - player number ]
 						new UInt16[] {0x8,0x0F},
 						new UInt16[] {0x9,0x100},
 					};
