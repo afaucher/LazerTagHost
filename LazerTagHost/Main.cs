@@ -28,6 +28,12 @@ namespace LazerTagHost
 	
 	public class Player {
 		public byte player_id;
+		public bool confirmed = false;
+		//0 = solo
+		//1-3 = team 1-3
+		public int team_number;
+		//0-7 = player 0-7
+		public int player_number;
 		
 		public Player(byte player_id) {
 			this.player_id = player_id;
@@ -98,8 +104,8 @@ namespace LazerTagHost
 		
 		private SerialPort serial_port = null;
 		private const int ADDING_ADVERTISEMENT_INTERVAL_SECONDS = 3;
-		private const int WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS = 60;
-		private const int GAME_START_COUNTDOWN_INTERVAL_SECONDS = 30;
+		private const int WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS = 10;
+		private const int GAME_START_COUNTDOWN_INTERVAL_SECONDS = 15;
 		private const int GAME_TIME_DURATION_MINUTES = 1;
 		private const bool autostart = true;
 		
@@ -255,8 +261,11 @@ namespace LazerTagHost
 					 */
 					
 					//TODO: Pick team/player index
+					//0 = solo
+					//1-3 = team 1-3
 					int team_assignment = 3;
-					int player_assignment = 0;
+					//player 0-7
+					int player_assignment = 7;
 					UInt16 team_response = (UInt16)((team_assignment << 3) | (player_assignment));
 					
 					
@@ -265,7 +274,7 @@ namespace LazerTagHost
 						new UInt16[] {0x8,game_id},//Game ID
 						new UInt16[] {0x8,player_id},//Player ID
 						new UInt16[] {0x8,team_response}, //player #
-						// [3 bits - zero - unknown][2 bits - team assignment][3 bits - unknown]
+						// [3 bits - zero - unknown][2 bits - team assignment][3 bits - player assignment]
 						new UInt16[] {0x9,0x100},
 					};
 					ChecksumSequence(ref values);
@@ -477,7 +486,7 @@ namespace LazerTagHost
 					hosting_state = HostingState.HOSTING_STATE_ADDING;
 					adding_state.next_adv = DateTime.Now;
 					incoming_packet_queue.Clear();
-					Init2TeamHostMode(10,10,0xff,15,10,false,false);
+					Init2TeamHostMode(GAME_TIME_DURATION_MINUTES,10,0xff,15,10,false,false);
 				}
 				break;
 			}
@@ -545,7 +554,7 @@ namespace LazerTagHost
 				if (countdown_state.game_start < now) {
 					MainClass.HostDebugWriteLine("Starting Game");
 					hosting_state = HostGun.HostingState.HOSTING_STATE_PLAYING;
-					playing_state.game_end = now.AddMinutes(GAME_TIME_DURATION_MINUTES);
+					playing_state.game_end = now.AddMinutes(game_state.game_time_minutes);
 				} else if (countdown_state.last_tick.AddSeconds(1) < now) {
 					countdown_state.last_tick = now;
 					
