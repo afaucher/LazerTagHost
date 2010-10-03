@@ -1141,7 +1141,7 @@ namespace LazerTagHost
             case HostingState.HOSTING_STATE_SUMMARY:
             {
                 if (now > summary_state.last_announce.AddSeconds(5)) {
-                    
+
                     Player next_debreif = null;
                     
                     foreach (Player p in players) {
@@ -1226,7 +1226,7 @@ namespace LazerTagHost
             
             HostGun hg = new HostGun(args[0]);
             
-            hg.RunRankTests();
+            //hg.RunRankTests();
             
             while (true) {
                 
