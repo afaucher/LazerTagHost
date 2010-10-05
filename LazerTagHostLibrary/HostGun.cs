@@ -789,7 +789,7 @@ namespace LazerTagHostLibrary
         {
             int i = 0;
             byte sum = 0;
-            for (i = 0; i < values.Length - 1; i++) {
+            for (i = 0; i < values.Length; i++) {
                 sum += (byte)values[i];
             }
             return sum;
