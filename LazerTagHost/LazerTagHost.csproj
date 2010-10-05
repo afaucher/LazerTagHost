@@ -39,4 +39,10 @@
     <Compile Include="AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\LazerTagHostLibrary\LazerTagHostLibrary.csproj">
+      <Project>{256A4DBB-169B-42E7-86A5-45432116B945}</Project>
+      <Name>LazerTagHostLibrary</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>
