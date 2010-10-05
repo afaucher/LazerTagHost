@@ -31,7 +31,7 @@ Global
 		{9F66BD10-37C1-447F-BBBE-CB17878D6120}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = LazerTagHost\LazerTagHost.csproj
+		StartupItem = ..\LazerTagHost-Gtk\LazerTagHost-Gtk\LazerTagHost-Gtk.csproj
 		Policies = $0
 		$0.DotNetNamingPolicy = $1
 		$1.DirectoryNamespaceAssociation = None

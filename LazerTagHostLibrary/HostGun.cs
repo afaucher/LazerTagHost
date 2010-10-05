@@ -10,7 +10,7 @@ namespace LazerTagHostLibrary
     public interface HostChangedListener
     {
         void PlayerListChanged(List<Player> players);
-        void CountdownChanged(DateTime dest);
+        void CountdownChanged(string seconds);
     }
 
     public class HostGun
@@ -34,33 +34,34 @@ namespace LazerTagHostLibrary
         };
         
         private struct AddingState {
-            public DateTime next_adv;
-            //public LinkedList<IRPacket> packets;
-            public DateTime game_start_timeout;
+            //public DateTime next_adv;
+            //public DateTime game_start_timeout;
         };
         
         private struct ConfirmJoinState {
             public byte player_id;
-            public DateTime confirm_timeout;    
-            //public LinkedList<IRPacket> packets;
+            //public DateTime confirm_timeout;
         };
 
         private struct CountdownState {
-            public DateTime game_start;
-            public DateTime last_tick;
+            //public DateTime game_start;
+            //public DateTime last_tick;
         };
         
         private struct PlayingState {
-            public DateTime game_end;
+            //public DateTime game_end;
         };
         
         private struct SummaryState {
-            public DateTime last_announce;
+            //public DateTime last_announce;
         };
         
         private struct GameOverState {
-            public DateTime last_announce;
+            //public DateTime last_announce;
         };
+
+        private DateTime state_change_timeout;
+        private DateTime next_announce;
         
         private enum HostingState {
             HOSTING_STATE_IDLE,
@@ -600,7 +601,7 @@ namespace LazerTagHostLibrary
                 incoming_packet_queue.Clear();
                 
                 hosting_state = HostGun.HostingState.HOSTING_STATE_CONFIRM_JOIN;
-                confirm_join_state.confirm_timeout = now.AddSeconds(2);
+                state_change_timeout = now.AddSeconds(2);
                 
                 return true;
             }
@@ -652,11 +653,13 @@ namespace LazerTagHostLibrary
                 }
                 
                 if (players.Count >= MINIMUM_PLAYER_COUNT_START) {
-                    adding_state.game_start_timeout = now.AddSeconds(WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS);
+                    state_change_timeout = now.AddSeconds(WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS);
                 }
                 hosting_state = HostGun.HostingState.HOSTING_STATE_ADDING;
                 incoming_packet_queue.Clear();
-                listener.PlayerListChanged(new List<Player>(players));
+                if (listener != null) {
+                    listener.PlayerListChanged(new List<Player>(players));
+                }
                 
                 return true;
             }
@@ -1002,7 +1005,7 @@ namespace LazerTagHostLibrary
                 //TODO
                 if (autostart) {
                     hosting_state = HostingState.HOSTING_STATE_ADDING;
-                    adding_state.next_adv = DateTime.Now;
+                    next_announce = DateTime.Now;
                     incoming_packet_queue.Clear();
                     Init2TeamHostMode(GAME_TIME_DURATION_MINUTES,10,0xff,15,10,true,false);
                 }
@@ -1010,7 +1013,7 @@ namespace LazerTagHostLibrary
             }
             case HostingState.HOSTING_STATE_ADDING:
             {
-                if (now.CompareTo(adding_state.next_adv) > 0) {
+                if (now.CompareTo(next_announce) > 0) {
                     
                     incoming_packet_queue.Clear();
                     
@@ -1033,14 +1036,14 @@ namespace LazerTagHostLibrary
 
                     TransmitPacket2(ref values);
                     
-                    adding_state.next_adv = now.AddSeconds(ADDING_ADVERTISEMENT_INTERVAL_SECONDS);
+                    next_announce = now.AddSeconds(ADDING_ADVERTISEMENT_INTERVAL_SECONDS);
                 } else if (players.Count >= 1
-                           && now > adding_state.game_start_timeout)
+                           && now > state_change_timeout)
                 {
                     HostDebugWriteLine("Starting countdown");
                     hosting_state = HostGun.HostingState.HOSTING_STATE_COUNTDOWN;
-                    countdown_state.game_start = now.AddSeconds(GAME_START_COUNTDOWN_INTERVAL_SECONDS);
-                    countdown_state.last_tick = now;
+                    state_change_timeout = now.AddSeconds(GAME_START_COUNTDOWN_INTERVAL_SECONDS);
+                    next_announce = now.AddSeconds(1);
                 } else if (players.Count >= 1) {
                     //TODO Ratelimit
                     //HostDebugWriteLine("Game start in T-" + (adding_state.game_start_timeout - now).Seconds);
@@ -1049,7 +1052,7 @@ namespace LazerTagHostLibrary
             }
             case HostingState.HOSTING_STATE_CONFIRM_JOIN:
             {
-                if (now.CompareTo(confirm_join_state.confirm_timeout) > 0) {
+                if (now.CompareTo(state_change_timeout) > 0) {
                     HostDebugWriteLine("No confirmation on timeout");
                     hosting_state = HostGun.HostingState.HOSTING_STATE_ADDING;
                     incoming_packet_queue.Clear();
@@ -1058,14 +1061,14 @@ namespace LazerTagHostLibrary
             }
             case HostingState.HOSTING_STATE_COUNTDOWN:
             {
-                if (countdown_state.game_start < now) {
+                if (state_change_timeout < now) {
                     HostDebugWriteLine("Starting Game");
                     hosting_state = HostGun.HostingState.HOSTING_STATE_PLAYING;
-                    playing_state.game_end = now.AddMinutes(game_state.game_time_minutes);
-                } else if (countdown_state.last_tick.AddSeconds(1) < now) {
-                    countdown_state.last_tick = now;
+                    state_change_timeout = now.AddMinutes(game_state.game_time_minutes);
+                } else if (next_announce < now) {
+                    next_announce = now.AddSeconds(1);
                     
-                    int seconds_left = (countdown_state.game_start - now).Seconds;
+                    int seconds_left = (state_change_timeout - now).Seconds;
                     /**
                      * There does not appear to be a reason to tell the gun the number of players
                      * ahead of time.  It only prevents those players from joining midgame.  The
@@ -1086,7 +1089,7 @@ namespace LazerTagHostLibrary
             }
             case HostingState.HOSTING_STATE_PLAYING:
             {
-                if (now > playing_state.game_end) {
+                if (now > state_change_timeout) {
                     hosting_state = HostGun.HostingState.HOSTING_STATE_SUMMARY;
                     HostDebugWriteLine("Game Over");
                 } else if (Console.KeyAvailable) {
@@ -1106,7 +1109,7 @@ namespace LazerTagHostLibrary
             }
             case HostingState.HOSTING_STATE_SUMMARY:
             {
-                if (now > summary_state.last_announce.AddSeconds(5)) {
+                if (now > next_announce) {
 
                     Player next_debreif = null;
                     
@@ -1120,7 +1123,7 @@ namespace LazerTagHostLibrary
                         //TODO Next State
                         HostDebugWriteLine("All players breifed");
                         hosting_state = HostGun.HostingState.HOSTING_STATE_GAME_OVER;
-                        game_over_state.last_announce = now;
+                        next_announce = now;
                         RankPlayers();
                         PrintScoreReport();
                         break;
@@ -1128,7 +1131,7 @@ namespace LazerTagHostLibrary
                     
                     UInt16 player_index = (UInt16)((next_debreif.team_number & 0xf) << 4 | (next_debreif.player_number & 0xf));
                     
-                    summary_state.last_announce = now;
+                    next_announce = now.AddSeconds(5);
                     UInt16[] values = new UInt16[]{
                         (UInt16)CommandCode.COMMAND_CODE_SCORE_ANNOUNCEMENT,
                         game_id,//Game ID
@@ -1142,9 +1145,9 @@ namespace LazerTagHostLibrary
             }
             case HostingState.HOSTING_STATE_GAME_OVER:
             {
-                if (now > game_over_state.last_announce.AddSeconds(5)) {
+                if (now > next_announce) {
                     
-                    game_over_state.last_announce = now;
+                    next_announce = now.AddSeconds(5);
                     
                     foreach (Player p in players) {
                         
@@ -1173,6 +1176,13 @@ namespace LazerTagHostLibrary
                 break;
             }
             //System.Threading.Thread.Sleep(100);
+            if (listener != null) {
+                if (state_change_timeout < now) {
+                    listener.CountdownChanged("Waiting");
+                } else {
+                    listener.CountdownChanged("T-" + (now - state_change_timeout).Seconds);
+                }
+            }
         }
     }
 }
