@@ -27,6 +27,8 @@ namespace LazerTagHostLibrary
         public int score = 0;
         public int individual_rank = 0; //1-24
         public int team_rank = 0; //1-3
+
+        public string player_name = "Unnamed Player";
         
         public Player(byte player_id) {
             this.player_id = player_id;
