@@ -129,7 +129,34 @@ public partial class MainWindow : Gtk.Window, HostChangedListener
 
                 Console.WriteLine("Set " + team_index + "," + player_index + " to " + (found ? "found" : "not found"));
                 if (found_player != null) {
-                    rb.Label = found_player.player_name;
+
+                    string text = found_player.player_name;
+
+                    switch (hg.GetGameState()) {
+                    case HostGun.HostingState.HOSTING_STATE_SUMMARY:
+                        text += " / " + (found_player.HasBeenDebriefed() ? "Done" : "Waiting");
+                        break;
+                    case HostGun.HostingState.HOSTING_STATE_GAME_OVER:
+                        string postfix = "";
+                        switch (found_player.individual_rank) {
+                            case 1:
+                                postfix = "st";
+                                break;
+                            case 2:
+                                postfix = "nd";
+                                break;
+                            case 3:
+                                postfix = "rd";
+                                break;
+                            default:
+                                postfix = "th";
+                                break;
+                        }
+                        text += " / " + found_player.individual_rank + postfix;
+                        break;
+                    }
+                    rb.Label = text;
+
                 } else {
                     rb.Label = "      Open      ";
                 }
@@ -152,8 +179,11 @@ public partial class MainWindow : Gtk.Window, HostChangedListener
     }
 
 #region HostChangedListener implementation
-    void HostChangedListener.PlayerListChanged(List<Player> players)
-    {
+    void HostChangedListener.PlayerListChanged(List<Player> players) {
+        RefreshPlayerList();
+    }
+
+    void HostChangedListener.GameStateChanged(HostGun.HostingState state) {
         RefreshPlayerList();
     }
 
@@ -176,6 +206,7 @@ public partial class MainWindow : Gtk.Window, HostChangedListener
         GLib.TimeoutHandler th = new GLib.TimeoutHandler(HostUpdate);
         GLib.Timeout.Add(100,th);
         labelSetup.Sensitive = false;
+        labelJoin.Sensitive = true;
         buttonStartHost.Sensitive = false;
     }
     
@@ -188,6 +219,8 @@ public partial class MainWindow : Gtk.Window, HostChangedListener
     {
         hg.EndGame();
         notebookMain.CurrentPage = 0;
+        labelSetup.Sensitive = true;
+        labelJoin.Sensitive = false;
     }
     
 

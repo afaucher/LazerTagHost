@@ -104,7 +104,7 @@ public partial class MainWindow {
         this.notebookMain = new Gtk.Notebook();
         this.notebookMain.CanFocus = true;
         this.notebookMain.Name = "notebookMain";
-        this.notebookMain.CurrentPage = 0;
+        this.notebookMain.CurrentPage = 1;
         // Container child notebookMain.Gtk.Notebook+NotebookChild
         this.fixed5 = new Gtk.Fixed();
         this.fixed5.Name = "fixed5";
@@ -540,6 +540,7 @@ public partial class MainWindow {
         w38.Position = 1;
         // Notebook tab
         this.labelJoin = new Gtk.Label();
+        this.labelJoin.Sensitive = false;
         this.labelJoin.Name = "labelJoin";
         this.labelJoin.LabelProp = Mono.Unix.Catalog.GetString("Join");
         this.notebookMain.SetTabLabel(this.fixed7, this.labelJoin);
