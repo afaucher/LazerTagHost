@@ -98,12 +98,14 @@ namespace LazerTagHostLibrary
         private const int GAME_TIME_DURATION_MINUTES = 1;
         private const int MINIMUM_PLAYER_COUNT_START = 2;
         private const int GAME_START_COUNTDOWN_ADVERTISEMENT_INTERVAL_SECONDS = 1;
-        private const int GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS = 1;
+        private const int GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS = 2;
+        private const int INTER_PACKET_BYTE_DELAY_MILISECONDS = 70;
         public bool autostart = false;
         
         //host gun state
         private GameState game_state;
         private HostingState hosting_state = HostGun.HostingState.HOSTING_STATE_IDLE;
+        private bool paused;
 
         //private AddingState adding_state;
         private ConfirmJoinState confirm_join_state;
@@ -213,6 +215,10 @@ namespace LazerTagHostLibrary
             HostDebugWriteLine(debug);
         }
 
+        public void AddListener(HostChangedListener listener) {
+            this.listener = listener;
+        }
+
         private void TransmitBytes(UInt16 data, UInt16 number_of_bits)
         {
             byte[] packet = new byte[2] {
@@ -222,7 +228,7 @@ namespace LazerTagHostLibrary
             serial_port.Write( packet, 0, 2 );
             serial_port.BaseStream.Flush();
 
-            System.Threading.Thread.Sleep(100);
+            System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILISECONDS);
         }
         
         public HostGun(string device, HostChangedListener l) {
@@ -265,6 +271,19 @@ namespace LazerTagHostLibrary
         {
             Enum c = code;
             return c.ToString();
+        }
+
+        public bool IsTeamGame() {
+            switch (game_state.game_type) {
+            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+                return true;
+            case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
+                return false;
+            default:
+                HostDebugWriteLine("Unknown game type");
+                return false;
+            }
         }
         
         private bool AssignTeamAndPlayer(int team_request, 
@@ -413,7 +432,7 @@ namespace LazerTagHostLibrary
                     return p;
                 }
             }
-            HostDebugWriteLine("Unable to lookup player " + team_number + "," + player_number);
+            //HostDebugWriteLine("Unable to lookup player " + team_number + "," + player_number);
             return null;
         }
         
@@ -470,16 +489,20 @@ namespace LazerTagHostLibrary
                 
                 IRPacket score_packet = incoming_packet_queue[score_index];
                 
-                p.hit_by_team_player_count[team_index,i] = score_packet.data;
+                p.hit_by_team_player_count[team_index,i] = DecimalHexToDecimal(score_packet.data);
                 Player shooter = LookupPlayer(team_index + 1,i);
                 if (shooter == null) {
                     continue;
                 }
                 string debug = String.Format("Hit: {0:d},{1:d}", p.team_number - 1, p.player_number);
                 HostDebugWriteLine(debug);
-                shooter.hit_team_player_count[p.team_number - 1, p.player_number] = score_packet.data;
+                shooter.hit_team_player_count[p.team_number - 1, p.player_number] = DecimalHexToDecimal(score_packet.data);
                 
                 score_index++;
+            }
+
+            if (listener != null) {
+                listener.PlayerListChanged(new List<Player>(players));
             }
             
             return true;
@@ -686,7 +709,7 @@ namespace LazerTagHostLibrary
                     return false;
                 }
                 
-                if (players.Count < MINIMUM_PLAYER_COUNT_START) {
+                if (players.Count >= MINIMUM_PLAYER_COUNT_START) {
 
                     state_change_timeout = now.AddSeconds(WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS);
                 }
@@ -808,7 +831,7 @@ namespace LazerTagHostLibrary
         static private int DecimalHexToDecimal(int d)
         {
             int ret = d & 0x0f;
-            ret += ((d >> 4) & 0xf);
+            ret += ((d >> 4) & 0xf) * 10;
             return ret;
         }
 
@@ -834,21 +857,48 @@ namespace LazerTagHostLibrary
             return sum;
         }
 
+        public string GetGameStateText()
+        {
+            switch (hosting_state) {
+            case HostingState.HOSTING_STATE_ADDING:
+                return "Adding Players";
+            case HostingState.HOSTING_STATE_COUNTDOWN:
+                return "Countdown to game start";
+            case HostingState.HOSTING_STATE_PLAYING:
+                return "Game in progress";
+            case HostingState.HOSTING_STATE_SUMMARY:
+                return "Debriefing Players";
+            case HostingState.HOSTING_STATE_GAME_OVER:
+                return "Game Over";
+            case HostingState.HOSTING_STATE_IDLE:
+            default:
+                    return "Not in a game";
+            }
+        }
+
         public string GetCountdown()
         {
             DateTime now = DateTime.Now;
             string countdown;
 
-            if (state_change_timeout < now) {
+            if (state_change_timeout < now || paused) {
 
                 countdown = "Waiting";
 
                 switch (hosting_state) {
                 case HostingState.HOSTING_STATE_ADDING:
-                    countdown = "Waiting for enough players";
+                    int needed = (MINIMUM_PLAYER_COUNT_START - players.Count);
+                    if (needed > 0) {
+                        countdown = "Waiting for " + needed + " more players";
+                    } else {
+                        countdown = "Ready to start";
+                    }
                     break;
                 case HostingState.HOSTING_STATE_SUMMARY:
                     countdown += " for all players to check in";
+                    break;
+                case HostingState.HOSTING_STATE_GAME_OVER:
+                    countdown = "All players may now receive scores";
                     break;
                 default:
                     break;
@@ -856,11 +906,16 @@ namespace LazerTagHostLibrary
 
 
             } else {
-                countdown = "T-" + (int)((now - state_change_timeout).TotalSeconds);
+                countdown = ((int)((state_change_timeout - now).TotalSeconds)).ToString() + " seconds";
 
                 switch (hosting_state) {
                 case HostingState.HOSTING_STATE_ADDING:
-                    countdown += " till countdown";
+                    int needed = (MINIMUM_PLAYER_COUNT_START - players.Count);
+                    if (needed > 0) {
+                        countdown = "Waiting for " + needed + " more players";
+                    } else {
+                        countdown += " till countdown";
+                    }
                     break;
                 case HostingState.HOSTING_STATE_COUNTDOWN:
                     countdown += " till game start";
@@ -1050,16 +1105,45 @@ namespace LazerTagHostLibrary
         public void StartServer() {
             if (hosting_state != HostGun.HostingState.HOSTING_STATE_IDLE) return;
 
-            hosting_state = HostGun.HostingState.HOSTING_STATE_ADDING;
+            ChangeState(DateTime.Now, HostGun.HostingState.HOSTING_STATE_ADDING);
         }
 
         public void EndGame() {
-            hosting_state = HostGun.HostingState.HOSTING_STATE_IDLE;
-            players.Clear();
+            ChangeState(DateTime.Now, HostGun.HostingState.HOSTING_STATE_IDLE);
+
         }
 
         public void DelayGame(int seconds) {
             state_change_timeout.AddSeconds(seconds);
+        }
+
+        public void Pause() {
+            switch (hosting_state) {
+            case HostingState.HOSTING_STATE_ADDING:
+                paused = true;
+                break;
+            default:
+                HostDebugWriteLine("Pause not enabled right now");
+                break;
+            }
+        }
+
+        public void Next() {
+            DateTime now = DateTime.Now;
+            switch (hosting_state) {
+            case HostingState.HOSTING_STATE_ADDING:
+                ChangeState(now, HostingState.HOSTING_STATE_COUNTDOWN);
+                break;
+            case HostingState.HOSTING_STATE_PLAYING:
+                ChangeState(now, HostingState.HOSTING_STATE_SUMMARY);
+                break;
+            case HostingState.HOSTING_STATE_SUMMARY:
+                ChangeState(now, HostingState.HOSTING_STATE_GAME_OVER);
+                break;
+            default:
+                HostDebugWriteLine("Next not enabled right now");
+                break;
+            }
         }
 
         public bool StartGameNow() {
@@ -1067,7 +1151,14 @@ namespace LazerTagHostLibrary
         }
 
         private bool ChangeState(DateTime now, HostingState state) {
+
+            paused = false;
+            //TODO: Clear timeouts
+
             switch (state) {
+            case HostingState.HOSTING_STATE_IDLE:
+                players.Clear();
+                break;
             case HostingState.HOSTING_STATE_COUNTDOWN:
                 if (hosting_state != HostGun.HostingState.HOSTING_STATE_ADDING) return false;
                 HostDebugWriteLine("Starting countdown");
@@ -1083,7 +1174,7 @@ namespace LazerTagHostLibrary
                 incoming_packet_queue.Clear();
                 break;
             case HostingState.HOSTING_STATE_SUMMARY:
-                HostDebugWriteLine("Debreifing");
+                HostDebugWriteLine("Debriefing");
                 break;
             case HostingState.HOSTING_STATE_GAME_OVER:
                 HostDebugWriteLine("Debreif Done");
@@ -1160,7 +1251,8 @@ namespace LazerTagHostLibrary
                     
                     next_announce = now.AddSeconds(ADDING_ADVERTISEMENT_INTERVAL_SECONDS);
                 } else if (players.Count >= MINIMUM_PLAYER_COUNT_START
-                           && now > state_change_timeout)
+                           && now > state_change_timeout
+                           && !paused)
                 {
                     ChangeState(now, HostingState.HOSTING_STATE_COUNTDOWN);
                 }
@@ -1229,7 +1321,7 @@ namespace LazerTagHostLibrary
                     {
                         List<Player> undebreifed = new List<Player>();
                         foreach (Player p in players) {
-                            if (!p.debriefed) {
+                            if (!p.HasBeenDebriefed()) {
                                 undebreifed.Add(p);
                             }
                         }

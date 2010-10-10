@@ -12,8 +12,6 @@
 
 public partial class MainWindow {
     
-    private Gtk.Notebook notebookMain;
-    
     private Gtk.Fixed fixed5;
     
     private Gtk.Table table1;
@@ -60,39 +58,7 @@ public partial class MainWindow {
     
     private Gtk.SpinButton spinbuttonTags;
     
-    private Gtk.Label labelSetup;
-    
-    private Gtk.Fixed fixed7;
-    
-    private Gtk.Table table2;
-    
-    private Gtk.Button buttonDrop;
-    
-    private Gtk.Button buttonLateJoin;
-    
-    private Gtk.HBox hbox2;
-    
-    private Gtk.ComboBoxEntry comboboxentryName;
-    
-    private Gtk.Button buttonRename;
-    
-    private Gtk.Label label19;
-    
-    private Gtk.Label label20;
-    
-    private Gtk.Label label21;
-    
-    private Gtk.Label labelCountdown;
-    
-    private Gtk.HBox hbox1;
-    
-    private Gtk.Button buttonCancel;
-    
-    private Gtk.Button buttonWait;
-    
-    private Gtk.Button buttonStartGame;
-    
-    private Gtk.Label labelJoin;
+    private Gtk.Image image337;
     
     protected virtual void Build() {
         Stetic.Gui.Initialize(this);
@@ -101,11 +67,6 @@ public partial class MainWindow {
         this.Title = Mono.Unix.Catalog.GetString("Lazer Tag Host");
         this.WindowPosition = ((Gtk.WindowPosition)(4));
         // Container child MainWindow.Gtk.Container+ContainerChild
-        this.notebookMain = new Gtk.Notebook();
-        this.notebookMain.CanFocus = true;
-        this.notebookMain.Name = "notebookMain";
-        this.notebookMain.CurrentPage = 1;
-        // Container child notebookMain.Gtk.Notebook+NotebookChild
         this.fixed5 = new Gtk.Fixed();
         this.fixed5.Name = "fixed5";
         this.fixed5.HasWindow = false;
@@ -378,187 +339,24 @@ public partial class MainWindow {
         Gtk.Fixed.FixedChild w22 = ((Gtk.Fixed.FixedChild)(this.fixed5[this.table1]));
         w22.X = 6;
         w22.Y = 84;
-        this.notebookMain.Add(this.fixed5);
-        // Notebook tab
-        this.labelSetup = new Gtk.Label();
-        this.labelSetup.Name = "labelSetup";
-        this.labelSetup.LabelProp = Mono.Unix.Catalog.GetString("Setup");
-        this.notebookMain.SetTabLabel(this.fixed5, this.labelSetup);
-        this.labelSetup.ShowAll();
-        // Container child notebookMain.Gtk.Notebook+NotebookChild
-        this.fixed7 = new Gtk.Fixed();
-        this.fixed7.Name = "fixed7";
-        this.fixed7.HasWindow = false;
-        // Container child fixed7.Gtk.Fixed+FixedChild
-        this.table2 = new Gtk.Table(((uint)(10)), ((uint)(4)), false);
-        this.table2.Name = "table2";
-        this.table2.RowSpacing = ((uint)(6));
-        this.table2.ColumnSpacing = ((uint)(6));
-        // Container child table2.Gtk.Table+TableChild
-        this.buttonDrop = new Gtk.Button();
-        this.buttonDrop.CanFocus = true;
-        this.buttonDrop.Name = "buttonDrop";
-        this.buttonDrop.UseUnderline = true;
-        this.buttonDrop.Label = Mono.Unix.Catalog.GetString("Drop");
-        this.table2.Add(this.buttonDrop);
-        Gtk.Table.TableChild w24 = ((Gtk.Table.TableChild)(this.table2[this.buttonDrop]));
-        w24.TopAttach = ((uint)(4));
-        w24.BottomAttach = ((uint)(5));
-        w24.XOptions = ((Gtk.AttachOptions)(4));
-        w24.YOptions = ((Gtk.AttachOptions)(4));
-        // Container child table2.Gtk.Table+TableChild
-        this.buttonLateJoin = new Gtk.Button();
-        this.buttonLateJoin.Sensitive = false;
-        this.buttonLateJoin.CanFocus = true;
-        this.buttonLateJoin.Name = "buttonLateJoin";
-        this.buttonLateJoin.UseUnderline = true;
-        this.buttonLateJoin.Label = Mono.Unix.Catalog.GetString("Late Join");
-        this.table2.Add(this.buttonLateJoin);
-        Gtk.Table.TableChild w25 = ((Gtk.Table.TableChild)(this.table2[this.buttonLateJoin]));
-        w25.TopAttach = ((uint)(6));
-        w25.BottomAttach = ((uint)(7));
-        w25.XOptions = ((Gtk.AttachOptions)(4));
-        w25.YOptions = ((Gtk.AttachOptions)(4));
-        // Container child table2.Gtk.Table+TableChild
-        this.hbox2 = new Gtk.HBox();
-        this.hbox2.Name = "hbox2";
-        this.hbox2.Spacing = 6;
-        // Container child hbox2.Gtk.Box+BoxChild
-        this.comboboxentryName = Gtk.ComboBoxEntry.NewText();
-        this.comboboxentryName.AppendText(Mono.Unix.Catalog.GetString("Duckbob"));
-        this.comboboxentryName.AppendText(Mono.Unix.Catalog.GetString("Raptor007"));
-        this.comboboxentryName.AppendText(Mono.Unix.Catalog.GetString("ChubChub"));
-        this.comboboxentryName.Name = "comboboxentryName";
-        this.comboboxentryName.Active = 0;
-        this.hbox2.Add(this.comboboxentryName);
-        Gtk.Box.BoxChild w26 = ((Gtk.Box.BoxChild)(this.hbox2[this.comboboxentryName]));
-        w26.Position = 0;
-        w26.Expand = false;
-        w26.Fill = false;
-        // Container child hbox2.Gtk.Box+BoxChild
-        this.buttonRename = new Gtk.Button();
-        this.buttonRename.CanFocus = true;
-        this.buttonRename.Name = "buttonRename";
-        this.buttonRename.UseUnderline = true;
-        this.buttonRename.Label = Mono.Unix.Catalog.GetString("Rename");
-        this.hbox2.Add(this.buttonRename);
-        Gtk.Box.BoxChild w27 = ((Gtk.Box.BoxChild)(this.hbox2[this.buttonRename]));
-        w27.Position = 1;
-        w27.Expand = false;
-        w27.Fill = false;
-        this.table2.Add(this.hbox2);
-        Gtk.Table.TableChild w28 = ((Gtk.Table.TableChild)(this.table2[this.hbox2]));
-        w28.TopAttach = ((uint)(5));
-        w28.BottomAttach = ((uint)(6));
-        w28.XOptions = ((Gtk.AttachOptions)(4));
-        w28.YOptions = ((Gtk.AttachOptions)(4));
-        // Container child table2.Gtk.Table+TableChild
-        this.label19 = new Gtk.Label();
-        this.label19.Name = "label19";
-        this.label19.LabelProp = Mono.Unix.Catalog.GetString("Team 1");
-        this.table2.Add(this.label19);
-        Gtk.Table.TableChild w29 = ((Gtk.Table.TableChild)(this.table2[this.label19]));
-        w29.LeftAttach = ((uint)(1));
-        w29.RightAttach = ((uint)(2));
-        w29.XOptions = ((Gtk.AttachOptions)(4));
-        w29.YOptions = ((Gtk.AttachOptions)(4));
-        // Container child table2.Gtk.Table+TableChild
-        this.label20 = new Gtk.Label();
-        this.label20.Name = "label20";
-        this.label20.LabelProp = Mono.Unix.Catalog.GetString("Team 2");
-        this.table2.Add(this.label20);
-        Gtk.Table.TableChild w30 = ((Gtk.Table.TableChild)(this.table2[this.label20]));
-        w30.LeftAttach = ((uint)(2));
-        w30.RightAttach = ((uint)(3));
-        w30.XOptions = ((Gtk.AttachOptions)(4));
-        w30.YOptions = ((Gtk.AttachOptions)(4));
-        // Container child table2.Gtk.Table+TableChild
-        this.label21 = new Gtk.Label();
-        this.label21.Name = "label21";
-        this.label21.LabelProp = Mono.Unix.Catalog.GetString("Team 3");
-        this.table2.Add(this.label21);
-        Gtk.Table.TableChild w31 = ((Gtk.Table.TableChild)(this.table2[this.label21]));
-        w31.LeftAttach = ((uint)(3));
-        w31.RightAttach = ((uint)(4));
-        w31.XOptions = ((Gtk.AttachOptions)(4));
-        w31.YOptions = ((Gtk.AttachOptions)(4));
-        this.fixed7.Add(this.table2);
-        Gtk.Fixed.FixedChild w32 = ((Gtk.Fixed.FixedChild)(this.fixed7[this.table2]));
-        w32.X = 24;
-        w32.Y = 31;
-        // Container child fixed7.Gtk.Fixed+FixedChild
-        this.labelCountdown = new Gtk.Label();
-        this.labelCountdown.Name = "labelCountdown";
-        this.labelCountdown.LabelProp = Mono.Unix.Catalog.GetString("Waiting2");
-        this.fixed7.Add(this.labelCountdown);
-        Gtk.Fixed.FixedChild w33 = ((Gtk.Fixed.FixedChild)(this.fixed7[this.labelCountdown]));
-        w33.X = 357;
-        w33.Y = 5;
-        // Container child fixed7.Gtk.Fixed+FixedChild
-        this.hbox1 = new Gtk.HBox();
-        this.hbox1.Name = "hbox1";
-        this.hbox1.Spacing = 6;
-        // Container child hbox1.Gtk.Box+BoxChild
-        this.buttonCancel = new Gtk.Button();
-        this.buttonCancel.CanFocus = true;
-        this.buttonCancel.Name = "buttonCancel";
-        this.buttonCancel.UseUnderline = true;
-        this.buttonCancel.Label = Mono.Unix.Catalog.GetString("Cancel");
-        this.hbox1.Add(this.buttonCancel);
-        Gtk.Box.BoxChild w34 = ((Gtk.Box.BoxChild)(this.hbox1[this.buttonCancel]));
-        w34.Position = 0;
-        w34.Expand = false;
-        w34.Fill = false;
-        // Container child hbox1.Gtk.Box+BoxChild
-        this.buttonWait = new Gtk.Button();
-        this.buttonWait.CanFocus = true;
-        this.buttonWait.Name = "buttonWait";
-        this.buttonWait.UseUnderline = true;
-        this.buttonWait.Label = Mono.Unix.Catalog.GetString("Wait");
-        this.hbox1.Add(this.buttonWait);
-        Gtk.Box.BoxChild w35 = ((Gtk.Box.BoxChild)(this.hbox1[this.buttonWait]));
-        w35.Position = 1;
-        w35.Expand = false;
-        w35.Fill = false;
-        // Container child hbox1.Gtk.Box+BoxChild
-        this.buttonStartGame = new Gtk.Button();
-        this.buttonStartGame.CanFocus = true;
-        this.buttonStartGame.Name = "buttonStartGame";
-        this.buttonStartGame.UseUnderline = true;
-        this.buttonStartGame.Label = Mono.Unix.Catalog.GetString("Start Game");
-        this.hbox1.Add(this.buttonStartGame);
-        Gtk.Box.BoxChild w36 = ((Gtk.Box.BoxChild)(this.hbox1[this.buttonStartGame]));
-        w36.Position = 2;
-        w36.Expand = false;
-        w36.Fill = false;
-        this.fixed7.Add(this.hbox1);
-        Gtk.Fixed.FixedChild w37 = ((Gtk.Fixed.FixedChild)(this.fixed7[this.hbox1]));
-        w37.X = 390;
-        w37.Y = 333;
-        this.notebookMain.Add(this.fixed7);
-        Gtk.Notebook.NotebookChild w38 = ((Gtk.Notebook.NotebookChild)(this.notebookMain[this.fixed7]));
-        w38.Position = 1;
-        // Notebook tab
-        this.labelJoin = new Gtk.Label();
-        this.labelJoin.Sensitive = false;
-        this.labelJoin.Name = "labelJoin";
-        this.labelJoin.LabelProp = Mono.Unix.Catalog.GetString("Join");
-        this.notebookMain.SetTabLabel(this.fixed7, this.labelJoin);
-        this.labelJoin.ShowAll();
-        this.Add(this.notebookMain);
+        // Container child fixed5.Gtk.Fixed+FixedChild
+        this.image337 = new Gtk.Image();
+        this.image337.Name = "image337";
+        this.image337.Pixbuf = Gdk.Pixbuf.LoadFromResource("LazerTagHostUI.Title.png");
+        this.fixed5.Add(this.image337);
+        Gtk.Fixed.FixedChild w23 = ((Gtk.Fixed.FixedChild)(this.fixed5[this.image337]));
+        w23.X = 12;
+        w23.Y = 7;
+        this.Add(this.fixed5);
         if ((this.Child != null)) {
             this.Child.ShowAll();
         }
-        this.DefaultWidth = 610;
-        this.DefaultHeight = 523;
+        this.DefaultWidth = 506;
+        this.DefaultHeight = 492;
         this.Show();
         this.DeleteEvent += new Gtk.DeleteEventHandler(this.OnDeleteEvent);
         this.comboboxentryArduinoPorts.Changed += new System.EventHandler(this.TransceiverChanged);
         this.comboboxentryArduinoPorts.EditingDone += new System.EventHandler(this.TransceiverChanged);
         this.buttonStartHost.Clicked += new System.EventHandler(this.StartGameType);
-        this.buttonRename.Clicked += new System.EventHandler(this.RenamePlayer);
-        this.buttonDrop.Clicked += new System.EventHandler(this.DropPlayer);
-        this.buttonCancel.Clicked += new System.EventHandler(this.CancelGame);
-        this.buttonWait.Clicked += new System.EventHandler(this.DelayGame);
     }
 }
