@@ -89,11 +89,13 @@ namespace LazerTagHostLibrary
         private SerialPort serial_port = null;
         private const int ADDING_ADVERTISEMENT_INTERVAL_SECONDS = 3;
         private const int WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS = 100;
-        private const int GAME_START_COUNTDOWN_INTERVAL_SECONDS = 60;
+        private const int GAME_START_COUNTDOWN_INTERVAL_SECONDS = 10;
         private const int GAME_TIME_DURATION_MINUTES = 1;
         private const int MINIMUM_PLAYER_COUNT_START = 2;
         private const int GAME_START_COUNTDOWN_ADVERTISEMENT_INTERVAL_SECONDS = 1;
-        private const int GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS = 1;
+        //1s breaks
+        private const int GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS = 3;
+        private const int GAME_OVER_ADVERTISEMENT_INTERVAL_SECONDS = 5;
         private const int INTER_PACKET_BYTE_DELAY_MILISECONDS = 100;
         private const int MAX_PLAYER_COUNT = 24;
         private bool autostart = false;
@@ -541,13 +543,7 @@ namespace LazerTagHostLibrary
                 UInt16 team_request = (UInt16)(player_team_request_packet.data & 0x03);
 
                 Player p = new Player((byte)player_id);
-                
-                //0 = solo
-                //1-3 = team 1-3
-                int team_assignment = 0;
-                //player 0-7
-                int player_assignment = 0;
-                
+
                 if (!AssignTeamAndPlayer(team_request,
                                     p))
                 {
@@ -556,7 +552,7 @@ namespace LazerTagHostLibrary
                 
                 players.AddLast(p);
                 
-                UInt16 team_response = (UInt16)((team_assignment << 3) | (player_assignment));
+                UInt16 team_response = (UInt16)((p.team_number << 3) | (p.player_number));
                 
                 
                 UInt16[] values = new UInt16[]{
@@ -777,12 +773,12 @@ namespace LazerTagHostLibrary
         private void TransmitLTTOBytes(UInt16 data, UInt16 number_of_bits)
         {
             byte[] packet = new byte[2] {
-                (byte)((0x01 << 5) | (number_of_bits << 1) | ((data >> 8) & 0x1)),
+                (byte)((0x01 << 5) | ((number_of_bits & 0xf) << 1) | ((data >> 8) & 0x1)),
                 (byte)(data & 0xff),
             };
             serial_port.Write( packet, 0, 2 );
             serial_port.BaseStream.Flush();
-            HostDebugWriteLine(String.Format("TX/LTTO: {0:d},{1:x}", number_of_bits, data));
+            HostDebugWriteLine(String.Format("TX/LTTO: {0:d},{1:x} Packet: 0x{2:x},0x{3:x}", number_of_bits, data,packet[0],packet[1]));
 
             System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILISECONDS);
         }
@@ -1468,7 +1464,7 @@ namespace LazerTagHostLibrary
                     
                     UInt16 player_index = (UInt16)((next_debreif.team_number & 0xf) << 4 | (next_debreif.player_number & 0xf));
                     
-                    next_announce = now.AddSeconds(5);
+                    next_announce = now.AddSeconds(GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS);
                     UInt16[] values = new UInt16[]{
                         (UInt16)CommandCode.COMMAND_CODE_SCORE_ANNOUNCEMENT,
                         game_id,//Game ID
@@ -1484,7 +1480,7 @@ namespace LazerTagHostLibrary
             {
                 if (now > next_announce) {
                     
-                    next_announce = now.AddSeconds(GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS);
+                    next_announce = now.AddSeconds(GAME_OVER_ADVERTISEMENT_INTERVAL_SECONDS);
                     
                     foreach (Player p in players) {
                         
