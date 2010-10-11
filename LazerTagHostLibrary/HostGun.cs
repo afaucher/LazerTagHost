@@ -158,6 +158,7 @@ namespace LazerTagHostLibrary
             }
 
             switch (game_state.game_type) {
+            //Solo Games
             case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
                 /**
@@ -185,12 +186,15 @@ namespace LazerTagHostLibrary
                     }
                 }
                 return false;
+            //Team Games
             case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
                 /**
                  * We first locate the smallest team, then assign an unused player slot
                  */
@@ -225,10 +229,10 @@ namespace LazerTagHostLibrary
                 return false;
             }
             
-            switch (game_state.game_type) {
+            /*switch (game_state.game_type) {
             case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:*/
             {
                 int i = 0;
                 for (i = 0; i < 8; i++) {
@@ -249,11 +253,11 @@ namespace LazerTagHostLibrary
                     HostDebugWriteLine("Failed to assign player number");
                     return false;
                 }
-                break;
+                //break;
             }
-            default:
+            /*default:
                 return false;
-            }
+            }*/
 
             dest_player.team_number = team_assignment;
             dest_player.team_index = team_assignment - 1;
@@ -278,8 +282,9 @@ namespace LazerTagHostLibrary
             IRPacket still_alive_packet = incoming_packet_queue[4]; //[7 bits - zero - unknown][1 bit - alive]
 
             IRPacket unknown_one = incoming_packet_queue[5];
-            IRPacket unknown_two = incoming_packet_queue[6];
-            IRPacket unknown_three = incoming_packet_queue[7];
+            IRPacket zone_time_minutes_packet = incoming_packet_queue[6];
+            IRPacket zone_time_seconds_packet = incoming_packet_queue[7];
+
             
             //[4 bits - zero - unknown][1 bit - hit by t3][1 bit - hit by t2][1 bit - hit by t1][1 bit - zero - unknown]
             IRPacket team_hit_report = incoming_packet_queue[8]; 
@@ -313,6 +318,8 @@ namespace LazerTagHostLibrary
                     p.has_score_report_for_team[0] = (team_hit_report.data & 0x2) != 0;
                     p.has_score_report_for_team[1] = (team_hit_report.data & 0x4) != 0;
                     p.has_score_report_for_team[2] = (team_hit_report.data & 0x8) != 0;
+                    p.zone_time = DecimalHexToDecimal(zone_time_minutes_packet.data) * 60
+                        + DecimalHexToDecimal(zone_time_seconds_packet.data);
                     
                     break;
                 }
@@ -837,8 +844,72 @@ namespace LazerTagHostLibrary
         private void RankPlayers()
         {
             switch (game_state.game_type) {
+            case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+            {
+                SortedList<int, Player> rankings = new SortedList<int, Player>();
+                //for team score
+                int[] team_zone_time = new int[3] { 0,0,0, };
+                //rank for each team
+                int[] team_rank = new int[3] { 0,0,0, };
+
+                foreach (Player p in players) {
+                    p.score = p.zone_time;
+
+                    int score = p.zone_time;
+                    score = score << 8 | p.player_id;
+                    rankings.Add(score, p);
+
+                    team_zone_time[p.team_index] += p.zone_time;
+                }
+
+                //Determine PlayerRanks
+                int rank = 0;
+                int last_score = 99;
+                foreach(KeyValuePair<int, Player> e in rankings) {
+
+                    Player p = e.Value;
+                    if (p.score != last_score) {
+                        rank++;
+                        last_score = p.score;
+                    }
+                    p.individual_rank = rank;
+                    p.team_rank = 0;
+                }
+
+                //Team rank only for team games
+                switch (game_state.game_type) {
+                case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+                case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+                {
+                    for (int i = 0; i < 3; i++) {
+                        team_rank[i] = 3;
+                        if (team_zone_time[i] >= team_zone_time[(i + 1) % 3]) {
+                            team_rank[i]--;
+                        }
+                        if (team_zone_time[i] >= team_zone_time[(i + 2) % 3]) {
+                            team_rank[i]--;
+                        }
+                        HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
+                    }
+
+                    foreach (Player p in players) {
+                        p.team_rank = team_rank[p.team_index];
+                    }
+
+                    break;
+                }
+                default:
+                    break;
+                }
+
+                break;
+            }
             case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST: //Untested
+            case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST: //Untested
             {
                 SortedList<int, Player> rankings = new SortedList<int, Player>();
                 //for team score
@@ -925,7 +996,14 @@ namespace LazerTagHostLibrary
                 
                 break;
             }
+            case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+            {
+                //TODO: Write kings score
+                break;
+            }
             default:
+                HostDebugWriteLine("Unable to score match");
                 break;
             }
 
@@ -1327,16 +1405,31 @@ namespace LazerTagHostLibrary
                     incoming_packet_queue.Clear();
 
                     //[3 bits - b001 - unknown][1 bit - team tag][1 bit - medic mode][3 bits - 0x0 - unknown]
-                    byte flags = 0x20;
+                    byte flags = 0x00;
                         flags |= game_state.medic_mode ? (byte)0x08 : (byte)0x00;
                         flags |= game_state.team_tag ? (byte)0x10 : (byte)0x00;
 
                     byte team_byte = DecimalToDecimalHex(game_state.number_of_teams);
 
                     switch (game_state.game_type) {
+                    case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
+                    case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+                    case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
+                        flags |= 0x20; //unknown
+                        break;
                     case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
-                        flags |= 0x40; //unknown
+                    case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+                    case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+                        flags |= 0x60; //unknown
                         team_byte |= 0xA0; //unknown
+                        break;
+                    case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+                    case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
+                        flags |= 0x60; //unknown
+                        break;
+                    case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
+                    case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
+                        flags |= 0x62;
                         break;
                     default:
                         break;
@@ -1408,6 +1501,8 @@ namespace LazerTagHostLibrary
 
                     switch (game_state.game_type) {
                     case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+                    case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+                    case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
                         TransmitLTTOBytes(0x02,5);
                         next_announce = now.AddMilliseconds(500);
                         break;
@@ -1571,6 +1666,16 @@ namespace LazerTagHostLibrary
             }
         }
 
+        public bool IsZoneGame() {
+            switch (game_state.game_type) {
+            case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+                return true;
+            default:
+                return false;
+            }
+        }
 
 #endregion
     }

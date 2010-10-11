@@ -44,9 +44,6 @@ namespace LazerTagHostUI
                     uint left_offset = 0;
                     tc.LeftAttach = team_index + left_offset + 0;
                     tc.RightAttach = team_index + left_offset + 1;
-
-                    
-
                 }
             }
 
@@ -87,6 +84,12 @@ namespace LazerTagHostUI
                 }
             }
             return false;
+        }
+
+        public void SelectPlayer(uint team_index, uint player_index) {
+            if (team_index > 2 || player_index > 7) return;
+            Gtk.RadioButton rb = radiobuttonPlayers[team_index,player_index];
+            rb.Active = true;
         }
 
         public delegate string GetPlayerName(uint team_index, uint player_index);

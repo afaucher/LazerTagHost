@@ -24,6 +24,8 @@ namespace LazerTagHostLibrary
         public bool[] has_score_report_for_team = new bool[3] {false, false, false};
         public int[,] hit_by_team_player_count = new int[3,8];
         public int[,] hit_team_player_count = new int[3,8];
+
+        public int zone_time;
         
         //final score for given game mode
         public int score = 0;

@@ -104,7 +104,12 @@ namespace LazerTagHostUI
                         text += "\nUnknown";
                     }
                 } else {
-                    text += "\nScore: " + found_player.score + " Dmg Recv: " + found_player.damage;
+                    if (hg.IsZoneGame()) {
+                        text += "\nZone Time: "
+                            + (found_player.zone_time / 60) + ":" + (found_player.zone_time % 60);
+                    } else {
+                        text += "\nScore: " + found_player.score + " Dmg Recv: " + found_player.damage;
+                    }
                 }
 
                 break;
@@ -161,7 +166,7 @@ namespace LazerTagHostUI
 
             if (name.Length < 3) return;
 
-            //TODO, append to all
+            //TODO, append to all, check dups
             entry.AppendText(name);
 
             LazerTagHostUI.PlayerSelector ps = playerselectionscreenMain.GetPlayerSelector();
