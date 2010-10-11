@@ -1,0 +1,57 @@
+﻿Lazer Tag Host README
+
+
+“Lazer Tag Host” Copyright 2010 Alexander Faucher
+
+Lazer Tag Host is compatible but not affiliated with Nerf and Tiger brand Phoenix LTX guns and Laser Tag Team Ops guns.
+
+Building “Lazer Tag Host”:
+
+1) Open LazerTagHost.sln is MonoDevelop
+2) Plug in Transceiver (see below for building instructions)
+3) Hit “Run”
+
+Transceiver Shopping List:
+ 
+2x Resistor (100ohms, ¼ watt, 5%)
+ * Vishay Metal Film Resistors – Through Hole
+ * Mfg P/N: CCF07100RJKE36, Mouser P/N: 71-CCF07100RJKE36
+ * $0.04 each
+1x Capacitor (10uF, 16 volts)
+ * TDK Multilayer Ceramic Capacitors (MLCC) – Leade
+ * Mfg P/N: FK20X7R1C106K, Mouser P/N: 81—FK20X7R1C106K
+ * $0.54 each
+x1 17 Degree 40mW Infrared Emitters
+ * Vishay Infrared Emitters
+ * Mfg P/N: TSAL6200, Mouser P/N: 782-TSAL6200
+ * $0.44 each
+x1 38kHz Infrared Receiver (4.5-5.5V)
+ * Vishay Infrared Receiver
+ * Mfg P/N: TSOP4138, Mouser P/N: 782-TSOP4138
+ * $1.16 each
+x1 Arduino Duemilanove
+ * $25.00 each
+x1 Breadboard
+ * $2.00 each
+
+Total: $29.22
+
+Arduino Wiring:
+
+Emitter
+Power Out Ground → (short pin)  TSAL6200 (long pin) → 100ohm Resistor → Arduino Digital 3
+
+Receiver
+Arduino Digital 11 → (left pin, facing receiver)  TSOP4138
+Power Out Ground → (center pin) TSOP4138
+Power Out Ground → 10uF Capacitor → (right pin, facing receiver) TSOP4138
+Power Out 5v → 100ohm Resistor → (right pin, facing receiver) TSOP4138
+
+Arduino Programming:
+
+1) Put “IRremote” in .../arduino-18/libraries/
+2) Launch the Arduino IDE
+3) Open Arduino/IRrelay/IRrelay.pde
+4) Select the proper Arduino USB serial port 
+5) Select Arduino Duemilanove (Or appropriate)
+6) Upload
