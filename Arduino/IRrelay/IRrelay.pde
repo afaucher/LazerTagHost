@@ -91,15 +91,19 @@ void loop() {
     byte high = Serial.read();
     byte low = Serial.read();
     
-    byte count = (high >> 4) & 0xf;
-    short value = (short)low | (((short)high & 0xf) << 8);
+    byte count = (high >> 1) & 0xf;
+    byte type = (high >> 5) & 0x1;
+    short value = (short)low | (((short)high & 0x1) << 8);
     
     /*Serial.print("Recv: ");
     Serial.print(value, HEX);
     Serial.print(", ");
     Serial.println(count, DEC);*/
-    
-    irsend.sendPHOENIX_LTX(value, count);
+    if (type == 0x00) {
+      irsend.sendPHOENIX_LTX(value, count);
+    } else if (type == 0x01) {
+      irsend.sendLTTO(value, count);
+    }
     
     irrecv.enableIRIn();
     irrecv.resume();

@@ -12,8 +12,10 @@ namespace LazerTagHostLibrary
         //0 = solo
         //1-3 = team 1-3
         public int team_number;
+        public int team_index;
         //0-7 = player 0-7
         public int player_number;
+
         //damage taken during match
         public int damage = 0;
         //still alive at end of match

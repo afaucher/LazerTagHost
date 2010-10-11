@@ -15,6 +15,12 @@ namespace LazerTagHostUI {
         
         private Gtk.HPaned hpaned1;
         
+        private Gtk.VBox vboxPanel;
+        
+        private Gtk.Label labelTitle;
+        
+        private LazerTagHostUI.PlayerSelector playerselector;
+        
         private Gtk.VBox vboxPlayerControls;
         
         private Gtk.Button buttonDropPlayer;
@@ -33,12 +39,6 @@ namespace LazerTagHostUI {
         
         private Gtk.Button buttonAbortHost;
         
-        private Gtk.VBox vbox2;
-        
-        private Gtk.Label labelTitle;
-        
-        private LazerTagHostUI.PlayerSelector playerselector;
-        
         protected virtual void Build() {
             Stetic.Gui.Initialize(this);
             // Widget LazerTagHostUI.PlayerSelectionScreen
@@ -48,8 +48,31 @@ namespace LazerTagHostUI {
             this.hpaned1 = new Gtk.HPaned();
             this.hpaned1.CanFocus = true;
             this.hpaned1.Name = "hpaned1";
-            this.hpaned1.Position = 267;
+            this.hpaned1.Position = 500;
             this.hpaned1.BorderWidth = ((uint)(6));
+            // Container child hpaned1.Gtk.Paned+PanedChild
+            this.vboxPanel = new Gtk.VBox();
+            this.vboxPanel.Name = "vboxPanel";
+            this.vboxPanel.Spacing = 6;
+            // Container child vboxPanel.Gtk.Box+BoxChild
+            this.labelTitle = new Gtk.Label();
+            this.labelTitle.Name = "labelTitle";
+            this.labelTitle.LabelProp = Mono.Unix.Catalog.GetString("Step Description Here");
+            this.vboxPanel.Add(this.labelTitle);
+            Gtk.Box.BoxChild w1 = ((Gtk.Box.BoxChild)(this.vboxPanel[this.labelTitle]));
+            w1.Position = 0;
+            w1.Expand = false;
+            w1.Fill = false;
+            // Container child vboxPanel.Gtk.Box+BoxChild
+            this.playerselector = new LazerTagHostUI.PlayerSelector();
+            this.playerselector.Events = ((Gdk.EventMask)(256));
+            this.playerselector.Name = "playerselector";
+            this.vboxPanel.Add(this.playerselector);
+            Gtk.Box.BoxChild w2 = ((Gtk.Box.BoxChild)(this.vboxPanel[this.playerselector]));
+            w2.Position = 1;
+            this.hpaned1.Add(this.vboxPanel);
+            Gtk.Paned.PanedChild w3 = ((Gtk.Paned.PanedChild)(this.hpaned1[this.vboxPanel]));
+            w3.Resize = false;
             // Container child hpaned1.Gtk.Paned+PanedChild
             this.vboxPlayerControls = new Gtk.VBox();
             this.vboxPlayerControls.WidthRequest = 150;
@@ -61,86 +84,94 @@ namespace LazerTagHostUI {
             this.buttonDropPlayer.Name = "buttonDropPlayer";
             this.buttonDropPlayer.UseUnderline = true;
             // Container child buttonDropPlayer.Gtk.Container+ContainerChild
-            Gtk.Alignment w1 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
+            Gtk.Alignment w4 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
             // Container child GtkAlignment.Gtk.Container+ContainerChild
-            Gtk.HBox w2 = new Gtk.HBox();
-            w2.Spacing = 2;
+            Gtk.HBox w5 = new Gtk.HBox();
+            w5.Spacing = 2;
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Image w3 = new Gtk.Image();
-            w3.Pixbuf = Stetic.IconLoader.LoadIcon(this, "gtk-delete", Gtk.IconSize.Menu, 16);
-            w2.Add(w3);
+            Gtk.Image w6 = new Gtk.Image();
+            w6.Pixbuf = Stetic.IconLoader.LoadIcon(this, "gtk-delete", Gtk.IconSize.Menu, 16);
+            w5.Add(w6);
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Label w5 = new Gtk.Label();
-            w5.LabelProp = Mono.Unix.Catalog.GetString("Drop Player");
-            w5.UseUnderline = true;
-            w2.Add(w5);
-            w1.Add(w2);
-            this.buttonDropPlayer.Add(w1);
+            Gtk.Label w8 = new Gtk.Label();
+            w8.LabelProp = Mono.Unix.Catalog.GetString("Drop Player");
+            w8.UseUnderline = true;
+            w5.Add(w8);
+            w4.Add(w5);
+            this.buttonDropPlayer.Add(w4);
             this.vboxPlayerControls.Add(this.buttonDropPlayer);
-            Gtk.Box.BoxChild w9 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.buttonDropPlayer]));
-            w9.Position = 0;
-            w9.Expand = false;
-            w9.Fill = false;
+            Gtk.Box.BoxChild w12 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.buttonDropPlayer]));
+            w12.Position = 0;
+            w12.Expand = false;
+            w12.Fill = false;
             // Container child vboxPlayerControls.Gtk.Box+BoxChild
             this.comboboxentryRenamePlayer = Gtk.ComboBoxEntry.NewText();
+            this.comboboxentryRenamePlayer.AppendText(Mono.Unix.Catalog.GetString("Duckbob"));
+            this.comboboxentryRenamePlayer.AppendText(Mono.Unix.Catalog.GetString("Raptor007"));
+            this.comboboxentryRenamePlayer.AppendText(Mono.Unix.Catalog.GetString("ChubChub"));
+            this.comboboxentryRenamePlayer.AppendText(Mono.Unix.Catalog.GetString("Nojoe"));
+            this.comboboxentryRenamePlayer.AppendText(Mono.Unix.Catalog.GetString("Nein"));
+            this.comboboxentryRenamePlayer.AppendText(Mono.Unix.Catalog.GetString("Sparhawk2k"));
+            this.comboboxentryRenamePlayer.AppendText(Mono.Unix.Catalog.GetString("Blue"));
+            this.comboboxentryRenamePlayer.AppendText(Mono.Unix.Catalog.GetString("Gold"));
             this.comboboxentryRenamePlayer.Name = "comboboxentryRenamePlayer";
             this.vboxPlayerControls.Add(this.comboboxentryRenamePlayer);
-            Gtk.Box.BoxChild w10 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.comboboxentryRenamePlayer]));
-            w10.Position = 1;
-            w10.Expand = false;
-            w10.Fill = false;
+            Gtk.Box.BoxChild w13 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.comboboxentryRenamePlayer]));
+            w13.Position = 1;
+            w13.Expand = false;
+            w13.Fill = false;
             // Container child vboxPlayerControls.Gtk.Box+BoxChild
             this.buttonLateJoin = new Gtk.Button();
             this.buttonLateJoin.CanFocus = true;
             this.buttonLateJoin.Name = "buttonLateJoin";
             this.buttonLateJoin.UseUnderline = true;
             // Container child buttonLateJoin.Gtk.Container+ContainerChild
-            Gtk.Alignment w11 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
+            Gtk.Alignment w14 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
             // Container child GtkAlignment.Gtk.Container+ContainerChild
-            Gtk.HBox w12 = new Gtk.HBox();
-            w12.Spacing = 2;
+            Gtk.HBox w15 = new Gtk.HBox();
+            w15.Spacing = 2;
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Image w13 = new Gtk.Image();
-            w13.Pixbuf = Stetic.IconLoader.LoadIcon(this, "gtk-add", Gtk.IconSize.Menu, 16);
-            w12.Add(w13);
+            Gtk.Image w16 = new Gtk.Image();
+            w16.Pixbuf = Stetic.IconLoader.LoadIcon(this, "gtk-add", Gtk.IconSize.Menu, 16);
+            w15.Add(w16);
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Label w15 = new Gtk.Label();
-            w15.LabelProp = Mono.Unix.Catalog.GetString("Late Join");
-            w15.UseUnderline = true;
-            w12.Add(w15);
-            w11.Add(w12);
-            this.buttonLateJoin.Add(w11);
+            Gtk.Label w18 = new Gtk.Label();
+            w18.LabelProp = Mono.Unix.Catalog.GetString("Late Join");
+            w18.UseUnderline = true;
+            w15.Add(w18);
+            w14.Add(w15);
+            this.buttonLateJoin.Add(w14);
             this.vboxPlayerControls.Add(this.buttonLateJoin);
-            Gtk.Box.BoxChild w19 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.buttonLateJoin]));
-            w19.Position = 2;
-            w19.Expand = false;
-            w19.Fill = false;
+            Gtk.Box.BoxChild w22 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.buttonLateJoin]));
+            w22.Position = 2;
+            w22.Expand = false;
+            w22.Fill = false;
             // Container child vboxPlayerControls.Gtk.Box+BoxChild
             this.togglebuttonRelativeScores = new Gtk.ToggleButton();
             this.togglebuttonRelativeScores.CanFocus = true;
             this.togglebuttonRelativeScores.Name = "togglebuttonRelativeScores";
             this.togglebuttonRelativeScores.UseUnderline = true;
             // Container child togglebuttonRelativeScores.Gtk.Container+ContainerChild
-            Gtk.Alignment w20 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
+            Gtk.Alignment w23 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
             // Container child GtkAlignment.Gtk.Container+ContainerChild
-            Gtk.HBox w21 = new Gtk.HBox();
-            w21.Spacing = 2;
+            Gtk.HBox w24 = new Gtk.HBox();
+            w24.Spacing = 2;
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Image w22 = new Gtk.Image();
-            w22.Pixbuf = Stetic.IconLoader.LoadIcon(this, "stock_calendar-view-month", Gtk.IconSize.Menu, 16);
-            w21.Add(w22);
+            Gtk.Image w25 = new Gtk.Image();
+            w25.Pixbuf = Stetic.IconLoader.LoadIcon(this, "stock_calendar-view-month", Gtk.IconSize.Menu, 16);
+            w24.Add(w25);
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Label w24 = new Gtk.Label();
-            w24.LabelProp = Mono.Unix.Catalog.GetString("Show Relative Scores");
-            w24.UseUnderline = true;
-            w21.Add(w24);
-            w20.Add(w21);
-            this.togglebuttonRelativeScores.Add(w20);
+            Gtk.Label w27 = new Gtk.Label();
+            w27.LabelProp = Mono.Unix.Catalog.GetString("Show Relative Scores");
+            w27.UseUnderline = true;
+            w24.Add(w27);
+            w23.Add(w24);
+            this.togglebuttonRelativeScores.Add(w23);
             this.vboxPlayerControls.Add(this.togglebuttonRelativeScores);
-            Gtk.Box.BoxChild w28 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.togglebuttonRelativeScores]));
-            w28.Position = 3;
-            w28.Expand = false;
-            w28.Fill = false;
+            Gtk.Box.BoxChild w31 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.togglebuttonRelativeScores]));
+            w31.Position = 3;
+            w31.Expand = false;
+            w31.Fill = false;
             // Container child vboxPlayerControls.Gtk.Box+BoxChild
             this.hboxBaseControls = new Gtk.HBox();
             this.hboxBaseControls.Name = "hboxBaseControls";
@@ -151,112 +182,91 @@ namespace LazerTagHostUI {
             this.buttonNext.Name = "buttonNext";
             this.buttonNext.UseUnderline = true;
             // Container child buttonNext.Gtk.Container+ContainerChild
-            Gtk.Alignment w29 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
+            Gtk.Alignment w32 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
             // Container child GtkAlignment.Gtk.Container+ContainerChild
-            Gtk.HBox w30 = new Gtk.HBox();
-            w30.Spacing = 2;
+            Gtk.HBox w33 = new Gtk.HBox();
+            w33.Spacing = 2;
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Image w31 = new Gtk.Image();
-            w31.Pixbuf = Stetic.IconLoader.LoadIcon(this, "gtk-apply", Gtk.IconSize.Menu, 16);
-            w30.Add(w31);
+            Gtk.Image w34 = new Gtk.Image();
+            w34.Pixbuf = Stetic.IconLoader.LoadIcon(this, "gtk-apply", Gtk.IconSize.Menu, 16);
+            w33.Add(w34);
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Label w33 = new Gtk.Label();
-            w33.LabelProp = Mono.Unix.Catalog.GetString("Next");
-            w33.UseUnderline = true;
-            w30.Add(w33);
-            w29.Add(w30);
-            this.buttonNext.Add(w29);
+            Gtk.Label w36 = new Gtk.Label();
+            w36.LabelProp = Mono.Unix.Catalog.GetString("_Next");
+            w36.UseUnderline = true;
+            w33.Add(w36);
+            w32.Add(w33);
+            this.buttonNext.Add(w32);
             this.hboxBaseControls.Add(this.buttonNext);
-            Gtk.Box.BoxChild w37 = ((Gtk.Box.BoxChild)(this.hboxBaseControls[this.buttonNext]));
-            w37.PackType = ((Gtk.PackType)(1));
-            w37.Position = 2;
-            w37.Expand = false;
-            w37.Fill = false;
+            Gtk.Box.BoxChild w40 = ((Gtk.Box.BoxChild)(this.hboxBaseControls[this.buttonNext]));
+            w40.PackType = ((Gtk.PackType)(1));
+            w40.Position = 2;
+            w40.Expand = false;
+            w40.Fill = false;
             // Container child hboxBaseControls.Gtk.Box+BoxChild
             this.buttonPause = new Gtk.Button();
             this.buttonPause.CanFocus = true;
             this.buttonPause.Name = "buttonPause";
             this.buttonPause.UseUnderline = true;
             // Container child buttonPause.Gtk.Container+ContainerChild
-            Gtk.Alignment w38 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
+            Gtk.Alignment w41 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
             // Container child GtkAlignment.Gtk.Container+ContainerChild
-            Gtk.HBox w39 = new Gtk.HBox();
-            w39.Spacing = 2;
+            Gtk.HBox w42 = new Gtk.HBox();
+            w42.Spacing = 2;
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Image w40 = new Gtk.Image();
-            w40.Pixbuf = Stetic.IconLoader.LoadIcon(this, "stock_appointment-reminder", Gtk.IconSize.Menu, 16);
-            w39.Add(w40);
+            Gtk.Image w43 = new Gtk.Image();
+            w43.Pixbuf = Stetic.IconLoader.LoadIcon(this, "stock_appointment-reminder", Gtk.IconSize.Menu, 16);
+            w42.Add(w43);
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Label w42 = new Gtk.Label();
-            w42.LabelProp = Mono.Unix.Catalog.GetString("Pause");
-            w42.UseUnderline = true;
-            w39.Add(w42);
-            w38.Add(w39);
-            this.buttonPause.Add(w38);
+            Gtk.Label w45 = new Gtk.Label();
+            w45.LabelProp = Mono.Unix.Catalog.GetString("_Pause");
+            w45.UseUnderline = true;
+            w42.Add(w45);
+            w41.Add(w42);
+            this.buttonPause.Add(w41);
             this.hboxBaseControls.Add(this.buttonPause);
-            Gtk.Box.BoxChild w46 = ((Gtk.Box.BoxChild)(this.hboxBaseControls[this.buttonPause]));
-            w46.PackType = ((Gtk.PackType)(1));
-            w46.Position = 3;
-            w46.Expand = false;
-            w46.Fill = false;
+            Gtk.Box.BoxChild w49 = ((Gtk.Box.BoxChild)(this.hboxBaseControls[this.buttonPause]));
+            w49.PackType = ((Gtk.PackType)(1));
+            w49.Position = 3;
+            w49.Expand = false;
+            w49.Fill = false;
             // Container child hboxBaseControls.Gtk.Box+BoxChild
             this.buttonAbortHost = new Gtk.Button();
             this.buttonAbortHost.CanFocus = true;
             this.buttonAbortHost.Name = "buttonAbortHost";
             this.buttonAbortHost.UseUnderline = true;
             // Container child buttonAbortHost.Gtk.Container+ContainerChild
-            Gtk.Alignment w47 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
+            Gtk.Alignment w50 = new Gtk.Alignment(0.5F, 0.5F, 0F, 0F);
             // Container child GtkAlignment.Gtk.Container+ContainerChild
-            Gtk.HBox w48 = new Gtk.HBox();
-            w48.Spacing = 2;
+            Gtk.HBox w51 = new Gtk.HBox();
+            w51.Spacing = 2;
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Image w49 = new Gtk.Image();
-            w49.Pixbuf = Stetic.IconLoader.LoadIcon(this, "gtk-cancel", Gtk.IconSize.Menu, 16);
-            w48.Add(w49);
+            Gtk.Image w52 = new Gtk.Image();
+            w52.Pixbuf = Stetic.IconLoader.LoadIcon(this, "gtk-cancel", Gtk.IconSize.Menu, 16);
+            w51.Add(w52);
             // Container child GtkHBox.Gtk.Container+ContainerChild
-            Gtk.Label w51 = new Gtk.Label();
-            w51.LabelProp = Mono.Unix.Catalog.GetString("Abort Host");
-            w51.UseUnderline = true;
-            w48.Add(w51);
-            w47.Add(w48);
-            this.buttonAbortHost.Add(w47);
+            Gtk.Label w54 = new Gtk.Label();
+            w54.LabelProp = Mono.Unix.Catalog.GetString("_Abort Host");
+            w54.UseUnderline = true;
+            w51.Add(w54);
+            w50.Add(w51);
+            this.buttonAbortHost.Add(w50);
             this.hboxBaseControls.Add(this.buttonAbortHost);
-            Gtk.Box.BoxChild w55 = ((Gtk.Box.BoxChild)(this.hboxBaseControls[this.buttonAbortHost]));
-            w55.PackType = ((Gtk.PackType)(1));
-            w55.Position = 4;
-            w55.Expand = false;
-            w55.Fill = false;
-            this.vboxPlayerControls.Add(this.hboxBaseControls);
-            Gtk.Box.BoxChild w56 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.hboxBaseControls]));
-            w56.PackType = ((Gtk.PackType)(1));
-            w56.Position = 5;
-            w56.Expand = false;
-            w56.Fill = false;
-            this.hpaned1.Add(this.vboxPlayerControls);
-            Gtk.Paned.PanedChild w57 = ((Gtk.Paned.PanedChild)(this.hpaned1[this.vboxPlayerControls]));
-            w57.Resize = false;
-            w57.Shrink = false;
-            // Container child hpaned1.Gtk.Paned+PanedChild
-            this.vbox2 = new Gtk.VBox();
-            this.vbox2.Name = "vbox2";
-            this.vbox2.Spacing = 6;
-            // Container child vbox2.Gtk.Box+BoxChild
-            this.labelTitle = new Gtk.Label();
-            this.labelTitle.Name = "labelTitle";
-            this.labelTitle.LabelProp = Mono.Unix.Catalog.GetString("Step Description Here");
-            this.vbox2.Add(this.labelTitle);
-            Gtk.Box.BoxChild w58 = ((Gtk.Box.BoxChild)(this.vbox2[this.labelTitle]));
-            w58.Position = 0;
+            Gtk.Box.BoxChild w58 = ((Gtk.Box.BoxChild)(this.hboxBaseControls[this.buttonAbortHost]));
+            w58.PackType = ((Gtk.PackType)(1));
+            w58.Position = 4;
             w58.Expand = false;
             w58.Fill = false;
-            // Container child vbox2.Gtk.Box+BoxChild
-            this.playerselector = new LazerTagHostUI.PlayerSelector();
-            this.playerselector.Events = ((Gdk.EventMask)(256));
-            this.playerselector.Name = "playerselector";
-            this.vbox2.Add(this.playerselector);
-            Gtk.Box.BoxChild w59 = ((Gtk.Box.BoxChild)(this.vbox2[this.playerselector]));
-            w59.Position = 1;
-            this.hpaned1.Add(this.vbox2);
+            this.vboxPlayerControls.Add(this.hboxBaseControls);
+            Gtk.Box.BoxChild w59 = ((Gtk.Box.BoxChild)(this.vboxPlayerControls[this.hboxBaseControls]));
+            w59.PackType = ((Gtk.PackType)(1));
+            w59.Position = 5;
+            w59.Expand = false;
+            w59.Fill = false;
+            this.hpaned1.Add(this.vboxPlayerControls);
+            Gtk.Paned.PanedChild w60 = ((Gtk.Paned.PanedChild)(this.hpaned1[this.vboxPlayerControls]));
+            w60.Resize = false;
+            w60.Shrink = false;
             this.Add(this.hpaned1);
             if ((this.Child != null)) {
                 this.Child.ShowAll();

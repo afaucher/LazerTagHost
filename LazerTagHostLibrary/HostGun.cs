@@ -33,35 +33,10 @@ namespace LazerTagHostLibrary
             public byte number_of_teams;
         };
 
-        /*
-        private struct AddingState {
-            //public DateTime next_adv;
-            //public DateTime game_start_timeout;
-        };
-        */
-        
         private struct ConfirmJoinState {
             public byte player_id;
         };
 
-        /*
-        private struct CountdownState {
-            //public DateTime game_start;
-            //public DateTime last_tick;
-        };
-        
-        private struct PlayingState {
-            //public DateTime game_end;
-        };
-        
-        private struct SummaryState {
-            //public DateTime last_announce;
-        };
-        
-        private struct GameOverState {
-            //public DateTime last_announce;
-        };
-        */
 
         public enum HostingState {
             HOSTING_STATE_IDLE,
@@ -72,21 +47,41 @@ namespace LazerTagHostLibrary
             HOSTING_STATE_SUMMARY,
             HOSTING_STATE_GAME_OVER,
         };
-        
-        private enum CommandCode {
-            COMMAND_CODE_CUSTOM_GAME_MODE_HOST = 0x02,
+
+        //TODO: Export only game types
+        public enum CommandCode {
+            //Game Types
+            COMMAND_CODE_CUSTOM_GAME_MODE_HOST = 0x02, //Solo
             COMMAND_CODE_2TMS_GAME_MODE_HOST = 0x03,
             COMMAND_CODE_3TMS_GAME_MODE_HOST = 0x04,
+            COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST = 0x05,
+            COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST = 0x06,
+            COMMAND_CODE_2_KINGS_GAME_MODE_HOST = 0x07,
+            COMMAND_CODE_3_KINGS_GAME_MODE_HOST = 0x08,
+            COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST = 0x09, //Solo
+            COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST = 0x0A,
+            COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST = 0x0B,
+
             COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST = 0x10,
             COMMAND_CODE_ACK_PLAYER_JOIN_RESPONSE = 0x01,
             COMMAND_CODE_CONFIRM_PLAY_JOIN_GAME = 0x11,
+            //TODO:COMMAND_CODE_RESEND_JOIN_CONFIRMATION
+            //Host: (10/10/2010 1:56:43 AM) Command: (15) SEQ:f,79,be,
+            COMMAND_CODE_RESEND_JOIN_CONFIRMATION = 0x0f,
+
             COMMAND_CODE_COUNTDOWN_TO_GAME_START = 0x00,
+
             COMMAND_CODE_SCORE_ANNOUNCEMENT = 0x31,
-            COMMAND_CODE_GAME_OVER = 0x32, //? unconfirmed
+            //Score Reports
             COMMAND_CODE_PLAYER_REPORT_SCORE = 0x40,
             COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT = 0x41,
             COMMAND_CODE_PLAYER_HIT_BY_TEAM_2_REPORT = 0x42,
             COMMAND_CODE_PLAYER_HIT_BY_TEAM_3_REPORT = 0x43,
+
+            COMMAND_CODE_GAME_OVER = 0x32,
+
+
+
         };
         
         private byte game_id = 0x00;
@@ -98,29 +93,32 @@ namespace LazerTagHostLibrary
         private const int GAME_TIME_DURATION_MINUTES = 1;
         private const int MINIMUM_PLAYER_COUNT_START = 2;
         private const int GAME_START_COUNTDOWN_ADVERTISEMENT_INTERVAL_SECONDS = 1;
-        private const int GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS = 2;
-        private const int INTER_PACKET_BYTE_DELAY_MILISECONDS = 70;
-        public bool autostart = false;
+        private const int GAME_DEBREIF_ADVERTISEMENT_INTERVAL_SECONDS = 1;
+        private const int INTER_PACKET_BYTE_DELAY_MILISECONDS = 100;
+        private const int MAX_PLAYER_COUNT = 24;
+        private bool autostart = false;
         
         //host gun state
         private GameState game_state;
         private HostingState hosting_state = HostGun.HostingState.HOSTING_STATE_IDLE;
         private bool paused;
 
-        //private AddingState adding_state;
         private ConfirmJoinState confirm_join_state;
-        //private CountdownState countdown_state;
-        //private SummaryState summary_state;
-        //private PlayingState playing_state;
-        //private GameOverState game_over_state;
 
         //loose change state
         private LinkedList<Player> players = new LinkedList<Player>();
         private HostChangedListener listener = null;
         private DateTime state_change_timeout;
         private DateTime next_announce;
+
+#region SerialProtocol
         private List<IRPacket> incoming_packet_queue = new List<IRPacket>();
-        private int team_number = 1;
+#endregion
+
+#region TestData
+        private int host_shot_team_number = 1;
+        private int join_count = 0;
+#endregion
         
         private void BaseGameSet(byte game_time_minutes, 
                                       byte tags,
@@ -139,133 +137,6 @@ namespace LazerTagHostLibrary
             game_state.medic_mode = medic_mode;
             game_id = (byte)(new Random().Next());
         }
-        
-        public void Init2TeamHostMode(byte game_time_minutes,
-                                      byte tags,
-                                      byte reloads,
-                                      byte sheilds,
-                                      byte mega,
-                                      bool team_tag,
-                                      bool medic_mode)
-        {
-            game_state.game_type = CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST;
-            BaseGameSet(game_time_minutes,
-                        tags,
-                        reloads,
-                        sheilds,
-                        mega,
-                        team_tag,
-                        medic_mode);
-            game_state.number_of_teams = 2;
-        }
-        
-        public void Init3TeamHostMode(byte game_time_minutes,
-                                      byte tags,
-                                      byte reloads,
-                                      byte sheilds,
-                                      byte mega,
-                                      bool team_tag,
-                                      bool medic_mode)
-        {
-            game_state.game_type = CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST;
-            BaseGameSet(game_time_minutes,
-                        tags,
-                        reloads,
-                        sheilds,
-                        mega,
-                        team_tag,
-                        medic_mode);
-            game_state.number_of_teams = 3;
-        }
-        
-        public void InitCustomHostMode(byte game_time_minutes, 
-                                      byte tags,
-                                      byte reloads,
-                                      byte sheilds,
-                                      byte mega,
-                                      bool team_tag,
-                                      bool medic_mode)
-        {
-            game_state.game_type = CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
-            BaseGameSet(game_time_minutes,
-                        tags,
-                        reloads,
-                        sheilds,
-                        mega,
-                        team_tag,
-                        medic_mode);
-            game_state.number_of_teams = 1;
-        }
-
-        private void TransmitPacket2(ref UInt16[] values)
-        {
-            string debug = "TX: (";
-
-            debug += ((CommandCode)(values[0])).ToString() + ") ";
-
-            for (int i = 0; i < values.Length; i++) {
-                UInt16 packet = values[i];
-                TransmitBytes(packet,(UInt16)(i == 0 ? 9 : 8));
-                debug += String.Format("{0:x},", packet);
-            }
-            UInt16 checksum = ComputeChecksum2(ref values);
-            checksum |= 0x100;
-            TransmitBytes(checksum,9);
-
-            HostDebugWriteLine(debug);
-        }
-
-        public void AddListener(HostChangedListener listener) {
-            this.listener = listener;
-        }
-
-        private void TransmitBytes(UInt16 data, UInt16 number_of_bits)
-        {
-            byte[] packet = new byte[2] {
-                (byte)((number_of_bits << 4) | ((data >> 8) & 0xf)),
-                (byte)(data & 0xff),
-            };
-            serial_port.Write( packet, 0, 2 );
-            serial_port.BaseStream.Flush();
-
-            System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILISECONDS);
-        }
-        
-        public HostGun(string device, HostChangedListener l) {
-            if (device != null) {
-                serial_port = new SerialPort(device, 115200);
-                serial_port.Parity = Parity.None;
-                serial_port.StopBits = StopBits.One;
-                serial_port.Open();
-            }
-            this.listener = l;
-        }
-
-        public bool SetDevice(string device) {
-            if (serial_port != null && serial_port.IsOpen) {
-                serial_port.Close();
-            }
-            serial_port = null;
-             if (device != null) {
-                try {
-                    SerialPort sp = new SerialPort(device, 115200);
-                    sp.Parity = Parity.None;
-                    sp.StopBits = StopBits.One;
-                    sp.Open();
-
-                    serial_port = sp;
-
-                } catch (Exception ex) {
-                    HostDebugWriteLine(ex.ToString());
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        public HostingState GetGameState() {
-            return hosting_state;
-        }
 
         private static string GetCommandCodeName(CommandCode code)
         {
@@ -273,29 +144,54 @@ namespace LazerTagHostLibrary
             return c.ToString();
         }
 
-        public bool IsTeamGame() {
-            switch (game_state.game_type) {
-            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-                return true;
-            case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-                return false;
-            default:
-                HostDebugWriteLine("Unknown game type");
+        private bool AssignTeamAndPlayer(int team_request, 
+                                         Player dest_player)
+        {
+            int team_assignment = 0;
+            int player_assignment = 0;
+
+            if (players.Count >= MAX_PLAYER_COUNT) {
+                HostDebugWriteLine("Max player count hit");
                 return false;
             }
-        }
-        
-        private bool AssignTeamAndPlayer(int team_request, 
-                                         ref int team_assignment, 
-                                         ref int player_assignment)
-        {
+
             switch (game_state.game_type) {
             case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-                team_assignment = 0;
-                break;
+            case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+                /**
+                 * Cycle through all spots until we find an open one
+                 */
+                for (int team_index = 0; team_index < 3; team_index++) {
+                    for (int player_number = 0; player_number < 8; player_number++) {
+                        bool found = false;
+                        foreach (Player p in players) {
+
+                            if (p.team_index == team_index
+                                && p.player_number == player_number) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            dest_player.team_index = team_index;
+                            //TODO: Fix mapping so team_number == 0 for solo
+                            dest_player.team_number = team_index + 1;
+                            dest_player.player_number = player_number;
+                            return true;
+                        }
+
+                    }
+                }
+                return false;
             case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+                /**
+                 * We first locate the smallest team, then assign an unused player slot
+                 */
                 if (team_request > 0 && team_request <= game_state.number_of_teams) {
                     team_assignment = team_request;
                 } else {
@@ -356,6 +252,10 @@ namespace LazerTagHostLibrary
             default:
                 return false;
             }
+
+            dest_player.team_number = team_assignment;
+            dest_player.team_index = team_assignment - 1;
+            dest_player.player_number = player_assignment;
             
             HostDebugWriteLine("Assigned player to team " + team_assignment + " and player " + player_assignment);
             
@@ -374,6 +274,10 @@ namespace LazerTagHostLibrary
             
             IRPacket damage_recv_packet = incoming_packet_queue[3]; //decimal hex
             IRPacket still_alive_packet = incoming_packet_queue[4]; //[7 bits - zero - unknown][1 bit - alive]
+
+            IRPacket unknown_one = incoming_packet_queue[5];
+            IRPacket unknown_two = incoming_packet_queue[6];
+            IRPacket unknown_three = incoming_packet_queue[7];
             
             //[4 bits - zero - unknown][1 bit - hit by t3][1 bit - hit by t2][1 bit - hit by t1][1 bit - zero - unknown]
             IRPacket team_hit_report = incoming_packet_queue[8]; 
@@ -422,20 +326,7 @@ namespace LazerTagHostLibrary
             
             return true;
         }
-        
-        public Player LookupPlayer(int team_number, int player_number)
-        {
-            foreach (Player p in players) {
-                if (p.team_number == team_number
-                    && p.player_number == player_number)
-                {
-                    return p;
-                }
-            }
-            //HostDebugWriteLine("Unable to lookup player " + team_number + "," + player_number);
-            return null;
-        }
-        
+
         private void PlayerTeamNumberSplit(int team_player_id, ref int player_number, ref int team_number)
         {
             player_number = team_player_id & 0xf;
@@ -496,7 +387,7 @@ namespace LazerTagHostLibrary
                 }
                 string debug = String.Format("Hit: {0:d},{1:d}", p.team_number - 1, p.player_number);
                 HostDebugWriteLine(debug);
-                shooter.hit_team_player_count[p.team_number - 1, p.player_number] = DecimalHexToDecimal(score_packet.data);
+                shooter.hit_team_player_count[p.team_index, p.player_number] = DecimalHexToDecimal(score_packet.data);
                 
                 score_index++;
             }
@@ -564,14 +455,48 @@ namespace LazerTagHostLibrary
                 }
             }
         }
-        
+
         private bool ProcessCommandSequence()
         {
             DateTime now = DateTime.Now;
             
             switch (hosting_state) {
             case HostingState.HOSTING_STATE_IDLE:
+            {
+#if JOIN_PLAYERS_TEST
+                if (!autostart) {
+                    IRPacket command_packet = incoming_packet_queue[0];
+                    IRPacket game_id_packet = incoming_packet_queue[1];
+
+
+
+                    if (command_packet.data == (UInt16)CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST) {
+                        System.Threading.Thread.Sleep(100);
+                        byte game_id = (byte)game_id_packet.data;
+                        if (join_count < 100) {
+                            join_count++;
+                            if (join_count % 10 == 0) {
+                                SendPlayerJoin(game_id);
+                            }
+                        }
+                    } else if (command_packet.data == (UInt16)CommandCode.COMMAND_CODE_ACK_PLAYER_JOIN_RESPONSE) {
+                        System.Threading.Thread.Sleep(100);
+
+                        IRPacket player_id_packet = incoming_packet_queue[2];
+
+                        UInt16[] join = {
+                            (UInt16)CommandCode.COMMAND_CODE_CONFIRM_PLAY_JOIN_GAME,
+                            game_id_packet.data,
+                            player_id_packet.data,
+                        };
+                        TransmitPacket2(ref join);
+
+                    }
+                }
+#endif
+
                 return true;
+            }
             case HostingState.HOSTING_STATE_ADDING:
             {
 
@@ -624,13 +549,10 @@ namespace LazerTagHostLibrary
                 int player_assignment = 0;
                 
                 if (!AssignTeamAndPlayer(team_request,
-                                    ref team_assignment, 
-                                    ref player_assignment))
+                                    p))
                 {
                     return false;
                 }
-                p.team_number = team_assignment;
-                p.player_number = player_assignment;
                 
                 players.AddLast(p);
                 
@@ -644,6 +566,7 @@ namespace LazerTagHostLibrary
                     team_response, //player #
                     // [3 bits - zero - unknown][2 bits - team assignment][3 bits - player assignment]
                 };
+                //TODO: Solo asignment is 0x08...0x20 (increment by one)
                 
                 if (game_id_packet.data != game_id) {
                     HostDebugWriteLine("Game id does not match current game, discarding");
@@ -742,16 +665,7 @@ namespace LazerTagHostLibrary
             }
             return false;
         }
-        
-        static private string SerializeCommandSequence(ref List<IRPacket> packets)
-        {
-            string command = "SEQ:";
-            foreach (IRPacket packet in packets) {
-                command += String.Format("{0:x},", packet.data);
-            }
-            return command;
-        }
-        
+
         private bool ProcessPacket(IRPacket.PacketType type, UInt16 data, UInt16 number_of_bits)
         {
             //DateTime now = DateTime.Now;
@@ -811,6 +725,14 @@ namespace LazerTagHostLibrary
                 return ProcessPacket(IRPacket.PacketType.PACKET_TYPE_LTX, data, number_of_bits);
             }
             case "LTTO":
+                if (parameters.Length != 2) {
+                    return false;
+                }
+                
+                UInt16 data = UInt16.Parse(parameters[0], NumberStyles.AllowHexSpecifier);
+                UInt16 number_of_bits = UInt16.Parse(parameters[1]);
+
+                HostDebugWriteLine(String.Format("LTTO: {0:d},{1:x}", number_of_bits, data));
                 break;
             default:
                 break;
@@ -818,7 +740,64 @@ namespace LazerTagHostLibrary
             
             return false;
         }
-        
+
+#region SerialProtocol
+
+
+        private void TransmitPacket2(ref UInt16[] values)
+        {
+            string debug = "TX: (";
+
+            debug += ((CommandCode)(values[0])).ToString() + ") ";
+
+            for (int i = 0; i < values.Length; i++) {
+                UInt16 packet = values[i];
+                TransmitBytes(packet,(UInt16)(i == 0 ? 9 : 8));
+                debug += String.Format("{0:x},", packet);
+            }
+            UInt16 checksum = ComputeChecksum2(ref values);
+            checksum |= 0x100;
+            TransmitBytes(checksum,9);
+
+            HostDebugWriteLine(debug);
+        }
+
+        private void TransmitBytes(UInt16 data, UInt16 number_of_bits)
+        {
+            byte[] packet = new byte[2] {
+                (byte)((0x00 << 5) | (number_of_bits << 1) | ((data >> 8) & 0x1)),
+                (byte)(data & 0xff),
+            };
+            serial_port.Write( packet, 0, 2 );
+            serial_port.BaseStream.Flush();
+
+            System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILISECONDS);
+        }
+
+        private void TransmitLTTOBytes(UInt16 data, UInt16 number_of_bits)
+        {
+            byte[] packet = new byte[2] {
+                (byte)((0x01 << 5) | (number_of_bits << 1) | ((data >> 8) & 0x1)),
+                (byte)(data & 0xff),
+            };
+            serial_port.Write( packet, 0, 2 );
+            serial_port.BaseStream.Flush();
+            HostDebugWriteLine(String.Format("TX/LTTO: {0:d},{1:x}", number_of_bits, data));
+
+            System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILISECONDS);
+        }
+
+
+        static private string SerializeCommandSequence(ref List<IRPacket> packets)
+        {
+            string command = "SEQ:";
+            foreach (IRPacket packet in packets) {
+                command += String.Format("{0:x},", packet.data);
+            }
+            return command;
+        }
+
+
         static private byte DecimalToDecimalHex(byte d)
         {
             //Unlimited
@@ -856,6 +835,324 @@ namespace LazerTagHostLibrary
             }
             return sum;
         }
+
+#endregion
+
+        private void RankPlayers()
+        {
+            switch (game_state.game_type) {
+            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+            {
+                SortedList<int, Player> rankings = new SortedList<int, Player>();
+                //for team score
+                int[] players_alive_per_team = new int[3] { 0,0,0, };
+                //for tie breaking team scores
+                int[] team_alive_score = new int[3] { 0,0,0, };
+                int[] team_final_score = new int[3] { 0,0,0, };
+                //rank for each team
+                int[] team_rank = new int[3] { 0,0,0, };
+                /*
+                - Individual ranks are based on receiving 2 points per tag landed on players
+                from other teams, and losing 1 point for every time you’re tagged by a player
+                from another team. Tagging your own teammate (Team Tags) costs you 2
+                points. Being tagged by your own teammates does not hurt your score.
+                - Team ranks are based on which team has the most players not tagged out
+                when the game ends (this gives an advantage to larger teams, so less-skilled
+                players can be grouped together on a larger team to even things out). In the
+                event of a tie, the TAG MASTER will attempt to break the tie based on the
+                individual scores of the players on each team who did not get tagged out –
+                this rewards the team with the more aggressive players that land more tags.
+                Just hiding or trying to not get tagged may cost your team valuable points that
+                could affect your team’s ranking.
+                */
+
+                foreach (Player p in players) {
+                    int score = - p.damage;
+                    int team_index = 0;
+                    int player_index = 0;
+                    //TODO: test
+                    for (team_index = 0; team_index < 3; team_index++) {
+                        for (player_index = 0; player_index < 8; player_index++) {
+                            if (p.team_index == team_index) {
+                                //Friendly fire
+                                score -= 2 * p.hit_team_player_count[team_index, player_index];
+                            } else {
+                                score += 2 * p.hit_team_player_count[team_index, player_index];
+                            }
+                        }
+                    }
+                    
+                    p.score = score;
+                    if (p.alive) {
+                        players_alive_per_team[p.team_index] ++;
+                        team_alive_score[p.team_index] += score;
+                    }
+                    //prevent duplicates
+                    score = score << 8 | p.player_id;
+                    //we want high rankings out first
+                    rankings.Add(-score, p);
+                }
+                
+                //Determine Team Ranks
+                for (int i = 0; i < 3; i++) {
+                    HostDebugWriteLine("Team " + (i + 1) + " Had " + players_alive_per_team[i] + " Players alive");
+                    HostDebugWriteLine("Combined Score: " + team_alive_score[i]);
+                    team_final_score[i] = (players_alive_per_team[i] << 10)
+                                        + (team_alive_score[i] << 2);
+                    HostDebugWriteLine("Final: Team " + (i + 1) + " Score " + team_final_score[i]);
+                }
+                for (int i = 0; i < 3; i++) {
+                    team_rank[i] = 3;
+                    if (team_final_score[i] >= team_final_score[(i + 1) % 3]) {
+                        team_rank[i]--;
+                    }
+                    if (team_final_score[i] >= team_final_score[(i + 2) % 3]) {
+                        team_rank[i]--;
+                    }
+                    HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
+                }
+
+                //Determine PlayerRanks
+                int rank = 0;
+                int last_score = 99;
+                foreach(KeyValuePair<int, Player> e in rankings) {
+
+                    Player p = e.Value;
+                    if (p.score != last_score) {
+                        rank++;
+                        last_score = p.score;
+                    }
+                    p.individual_rank = rank;
+                    p.team_rank = team_rank[p.team_index];
+                }
+                
+                break;
+            }
+            default:
+                break;
+            }
+
+        }
+
+#region TestData
+        private void Shoot(int team_number, int player_number, int damage, bool hosted)
+        {
+            if (!hosted) return;
+            
+            UInt16 shot = (UInt16)(((team_number & 0x3) << 5) 
+                                   | ((player_number & 0x07) << 2)
+                                   | (damage & 0x2));
+            TransmitBytes(shot, 7);
+            string debug = String.Format("Shot: {0:d},{1:d},{2:d} 0x{3:x}", team_number, player_number, damage, shot);
+            HostDebugWriteLine(debug);
+        }
+
+        private void SendPlayerJoin(byte game_id) {
+
+            UInt16 player_id = (UInt16)(new Random().Next() & 0xff);
+
+            HostDebugWriteLine("Joining " + player_id);
+
+            UInt16[] join = {
+                (UInt16)CommandCode.COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST,
+                game_id,
+                player_id,
+                0x09,
+            };
+            TransmitPacket2(ref join);
+
+
+        }
+#endregion
+
+        private bool ChangeState(DateTime now, HostingState state) {
+
+            paused = false;
+            //TODO: Clear timeouts
+
+            switch (state) {
+            case HostingState.HOSTING_STATE_IDLE:
+                players.Clear();
+                break;
+            case HostingState.HOSTING_STATE_COUNTDOWN:
+                if (hosting_state != HostGun.HostingState.HOSTING_STATE_ADDING) return false;
+                HostDebugWriteLine("Starting countdown");
+                state_change_timeout = now.AddSeconds(GAME_START_COUNTDOWN_INTERVAL_SECONDS);
+                break;
+            case HostingState.HOSTING_STATE_ADDING:
+                HostDebugWriteLine("Joining players");
+                incoming_packet_queue.Clear();
+                break;
+            case HostingState.HOSTING_STATE_PLAYING:
+                HostDebugWriteLine("Starting Game");
+                state_change_timeout = now.AddMinutes(game_state.game_time_minutes);
+                incoming_packet_queue.Clear();
+                break;
+            case HostingState.HOSTING_STATE_SUMMARY:
+                HostDebugWriteLine("Debriefing");
+                break;
+            case HostingState.HOSTING_STATE_GAME_OVER:
+                HostDebugWriteLine("Debreif Done");
+                break;
+            default:
+                return false;
+            }
+
+            hosting_state = state;
+            next_announce = now;
+
+            if (listener != null) {
+                listener.GameStateChanged(state);
+            }
+
+            return true;
+        }
+
+#region PublicInterface
+
+        public void DynamicHostMode(CommandCode game_type,
+                                    byte game_time_minutes,
+                                    byte tags,
+                                    byte reloads,
+                                    byte sheilds,
+                                    byte mega,
+                                    bool team_tag,
+                                    bool medic_mode,
+                                    byte number_of_teams)
+        {
+            game_state.game_type = game_type;
+            BaseGameSet(game_time_minutes,
+                        tags,
+                        reloads,
+                        sheilds,
+                        mega,
+                        team_tag,
+                        medic_mode);
+            game_state.number_of_teams = number_of_teams;
+        }
+
+        public void Init2TeamHostMode(byte game_time_minutes,
+                                      byte tags,
+                                      byte reloads,
+                                      byte sheilds,
+                                      byte mega,
+                                      bool team_tag,
+                                      bool medic_mode)
+        {
+            game_state.game_type = CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST;
+            BaseGameSet(game_time_minutes,
+                        tags,
+                        reloads,
+                        sheilds,
+                        mega,
+                        team_tag,
+                        medic_mode);
+            game_state.number_of_teams = 2;
+        }
+
+        public void Init3TeamHostMode(byte game_time_minutes,
+                                      byte tags,
+                                      byte reloads,
+                                      byte sheilds,
+                                      byte mega,
+                                      bool team_tag,
+                                      bool medic_mode)
+        {
+            game_state.game_type = CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST;
+            BaseGameSet(game_time_minutes,
+                        tags,
+                        reloads,
+                        sheilds,
+                        mega,
+                        team_tag,
+                        medic_mode);
+            game_state.number_of_teams = 3;
+        }
+        
+        public void InitCustomHostMode(byte game_time_minutes, 
+                                      byte tags,
+                                      byte reloads,
+                                      byte sheilds,
+                                      byte mega,
+                                      bool team_tag,
+                                      bool medic_mode)
+        {
+            game_state.game_type = CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST;
+            BaseGameSet(game_time_minutes,
+                        tags,
+                        reloads,
+                        sheilds,
+                        mega,
+                        team_tag,
+                        medic_mode);
+            game_state.number_of_teams = 1;
+        }
+
+
+        public Player LookupPlayer(int team_number, int player_number)
+        {
+            foreach (Player p in players) {
+                if (p.team_number == team_number
+                    && p.player_number == player_number)
+                {
+                    return p;
+                }
+            }
+            //HostDebugWriteLine("Unable to lookup player " + team_number + "," + player_number);
+            return null;
+        }
+
+
+        public void StartServer() {
+            if (hosting_state != HostGun.HostingState.HOSTING_STATE_IDLE) return;
+
+            ChangeState(DateTime.Now, HostGun.HostingState.HOSTING_STATE_ADDING);
+        }
+
+        public void EndGame() {
+            ChangeState(DateTime.Now, HostGun.HostingState.HOSTING_STATE_IDLE);
+
+        }
+
+        public void DelayGame(int seconds) {
+            state_change_timeout.AddSeconds(seconds);
+        }
+
+        public void Pause() {
+            switch (hosting_state) {
+            case HostingState.HOSTING_STATE_ADDING:
+                paused = true;
+                break;
+            default:
+                HostDebugWriteLine("Pause not enabled right now");
+                break;
+            }
+        }
+
+        public void Next() {
+            DateTime now = DateTime.Now;
+            switch (hosting_state) {
+            case HostingState.HOSTING_STATE_ADDING:
+                ChangeState(now, HostingState.HOSTING_STATE_COUNTDOWN);
+                break;
+            case HostingState.HOSTING_STATE_PLAYING:
+                ChangeState(now, HostingState.HOSTING_STATE_SUMMARY);
+                break;
+            case HostingState.HOSTING_STATE_SUMMARY:
+                ChangeState(now, HostingState.HOSTING_STATE_GAME_OVER);
+                break;
+            default:
+                HostDebugWriteLine("Next not enabled right now");
+                break;
+            }
+        }
+
+        public bool StartGameNow() {
+            return ChangeState(DateTime.Now, HostingState.HOSTING_STATE_COUNTDOWN);
+        }
+
+
 
         public string GetGameStateText()
         {
@@ -992,211 +1289,14 @@ namespace LazerTagHostLibrary
             RankPlayers();
             PrintScoreReport();
         }
-        
-        private void RankPlayers()
-        {
-            switch (game_state.game_type) {
-            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
-            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
-            {
-                SortedList<int, Player> rankings = new SortedList<int, Player>();
-                //for team score
-                int[] players_alive_per_team = new int[3] { 0,0,0, };
-                //for tie breaking team scores
-                int[] team_alive_score = new int[3] { 0,0,0, };
-                int[] team_final_score = new int[3] { 0,0,0, };
-                //rank for each team
-                int[] team_rank = new int[3] { 0,0,0, };
-                /*
-                - Individual ranks are based on receiving 2 points per tag landed on players
-                from other teams, and losing 1 point for every time you’re tagged by a player
-                from another team. Tagging your own teammate (Team Tags) costs you 2
-                points. Being tagged by your own teammates does not hurt your score.
-                - Team ranks are based on which team has the most players not tagged out
-                when the game ends (this gives an advantage to larger teams, so less-skilled
-                players can be grouped together on a larger team to even things out). In the
-                event of a tie, the TAG MASTER will attempt to break the tie based on the
-                individual scores of the players on each team who did not get tagged out –
-                this rewards the team with the more aggressive players that land more tags.
-                Just hiding or trying to not get tagged may cost your team valuable points that
-                could affect your team’s ranking.
-                */
 
-                foreach (Player p in players) {
-                    int score = - p.damage;
-                    int team_index = 0;
-                    int player_index = 0;
-                    //TODO: test
-                    for (team_index = 0; team_index < 3; team_index++) {
-                        for (player_index = 0; player_index < 8; player_index++) {
-                            if (p.team_number - 1 == team_index) {
-                                //Friendly fire
-                                score -= 2 * p.hit_team_player_count[team_index, player_index];
-                            } else {
-                                score += 2 * p.hit_team_player_count[team_index, player_index];
-                            }
-                        }
-                    }
-                    
-                    p.score = score;
-                    if (p.alive) {
-                        players_alive_per_team[p.team_number - 1] ++;
-                        team_alive_score[p.team_number - 1] += score;
-                    }
-                    //prevent duplicates
-                    score = score << 8 | p.player_id;
-                    //we want high rankings out first
-                    rankings.Add(-score, p);
-                }
-                
-                //Determine Team Ranks
-                for (int i = 0; i < 3; i++) {
-                    HostDebugWriteLine("Team " + (i + 1) + " Had " + players_alive_per_team[i] + " Players alive");
-                    HostDebugWriteLine("Combined Score: " + team_alive_score[i]);
-                    team_final_score[i] = (players_alive_per_team[i] << 10)
-                                        + (team_alive_score[i] << 2);
-                    HostDebugWriteLine("Final: Team " + (i + 1) + " Score " + team_final_score[i]);
-                }
-                for (int i = 0; i < 3; i++) {
-                    team_rank[i] = 3;
-                    if (team_final_score[i] >= team_final_score[(i + 1) % 3]) {
-                        team_rank[i]--;
-                    }
-                    if (team_final_score[i] >= team_final_score[(i + 2) % 3]) {
-                        team_rank[i]--;
-                    }
-                    HostDebugWriteLine("Team " + (i + 1) + " Rank " + team_rank[i]);
-                }
 
-                //Determine PlayerRanks
-                int rank = 0;
-                int last_score = 99;
-                foreach(KeyValuePair<int, Player> e in rankings) {
-
-                    Player p = e.Value;
-                    if (p.score != last_score) {
-                        rank++;
-                        last_score = p.score;
-                    }
-                    p.individual_rank = rank;
-                    p.team_rank = team_rank[p.team_number - 1];
-                }
-                
-                break;
-            }
-            default:
-                break;
-            }
-
-        }
-        
-        private void Shoot(int team_number, int player_number, int damage, bool hosted)
-        {
-            if (!hosted) return;
-            
-            UInt16 shot = (UInt16)(((team_number & 0x3) << 5) 
-                                   | ((player_number & 0x07) << 2)
-                                   | (damage & 0x2));
-            TransmitBytes(shot, 7);
-            string debug = String.Format("Shot: {0:d},{1:d},{2:d} 0x{3:x}", team_number, player_number, damage, shot);
-            HostDebugWriteLine(debug);
-        }
-        
-        public void StartServer() {
-            if (hosting_state != HostGun.HostingState.HOSTING_STATE_IDLE) return;
-
-            ChangeState(DateTime.Now, HostGun.HostingState.HOSTING_STATE_ADDING);
-        }
-
-        public void EndGame() {
-            ChangeState(DateTime.Now, HostGun.HostingState.HOSTING_STATE_IDLE);
-
-        }
-
-        public void DelayGame(int seconds) {
-            state_change_timeout.AddSeconds(seconds);
-        }
-
-        public void Pause() {
-            switch (hosting_state) {
-            case HostingState.HOSTING_STATE_ADDING:
-                paused = true;
-                break;
-            default:
-                HostDebugWriteLine("Pause not enabled right now");
-                break;
-            }
-        }
-
-        public void Next() {
-            DateTime now = DateTime.Now;
-            switch (hosting_state) {
-            case HostingState.HOSTING_STATE_ADDING:
-                ChangeState(now, HostingState.HOSTING_STATE_COUNTDOWN);
-                break;
-            case HostingState.HOSTING_STATE_PLAYING:
-                ChangeState(now, HostingState.HOSTING_STATE_SUMMARY);
-                break;
-            case HostingState.HOSTING_STATE_SUMMARY:
-                ChangeState(now, HostingState.HOSTING_STATE_GAME_OVER);
-                break;
-            default:
-                HostDebugWriteLine("Next not enabled right now");
-                break;
-            }
-        }
-
-        public bool StartGameNow() {
-            return ChangeState(DateTime.Now, HostingState.HOSTING_STATE_COUNTDOWN);
-        }
-
-        private bool ChangeState(DateTime now, HostingState state) {
-
-            paused = false;
-            //TODO: Clear timeouts
-
-            switch (state) {
-            case HostingState.HOSTING_STATE_IDLE:
-                players.Clear();
-                break;
-            case HostingState.HOSTING_STATE_COUNTDOWN:
-                if (hosting_state != HostGun.HostingState.HOSTING_STATE_ADDING) return false;
-                HostDebugWriteLine("Starting countdown");
-                state_change_timeout = now.AddSeconds(GAME_START_COUNTDOWN_INTERVAL_SECONDS);
-                break;
-            case HostingState.HOSTING_STATE_ADDING:
-                HostDebugWriteLine("Joining players");
-                incoming_packet_queue.Clear();
-                break;
-            case HostingState.HOSTING_STATE_PLAYING:
-                HostDebugWriteLine("Starting Game");
-                state_change_timeout = now.AddMinutes(game_state.game_time_minutes);
-                incoming_packet_queue.Clear();
-                break;
-            case HostingState.HOSTING_STATE_SUMMARY:
-                HostDebugWriteLine("Debriefing");
-                break;
-            case HostingState.HOSTING_STATE_GAME_OVER:
-                HostDebugWriteLine("Debreif Done");
-                break;
-            default:
-                return false;
-            }
-
-            hosting_state = state;
-            next_announce = now;
-
-            if (listener != null) {
-                listener.GameStateChanged(state);
-            }
-
-            return true;
-        }
-        
         public void Update() {
             DateTime now = DateTime.Now;
             
-            if (serial_port.BytesToRead > 0) {
+            if (serial_port == null || !serial_port.IsOpen) {
+                return;
+            } else if (serial_port.BytesToRead > 0) {
                 string input = serial_port.ReadLine();
                 
                 int command_length = input.IndexOf(':');
@@ -1229,10 +1329,22 @@ namespace LazerTagHostLibrary
                 if (now.CompareTo(next_announce) > 0) {
                     
                     incoming_packet_queue.Clear();
-                    
+
+                    //[3 bits - b001 - unknown][1 bit - team tag][1 bit - medic mode][3 bits - 0x0 - unknown]
                     byte flags = 0x20;
                         flags |= game_state.medic_mode ? (byte)0x08 : (byte)0x00;
                         flags |= game_state.team_tag ? (byte)0x10 : (byte)0x00;
+
+                    byte team_byte = DecimalToDecimalHex(game_state.number_of_teams);
+
+                    switch (game_state.game_type) {
+                    case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+                        flags |= 0x40; //unknown
+                        team_byte |= 0xA0; //unknown
+                        break;
+                    default:
+                        break;
+                    }
                     
                     UInt16[] values = new UInt16[]{
                         (UInt16)game_state.game_type,
@@ -1242,9 +1354,8 @@ namespace LazerTagHostLibrary
                         DecimalToDecimalHex(game_state.reloads), //reloads
                         DecimalToDecimalHex(game_state.sheild), //sheild
                         DecimalToDecimalHex(game_state.mega), //mega
-                        flags, //unknown/team/medic/unknown
-                        //[3 bits - b001 - unknown][1 bit - team tag][1 bit - medic mode][3 bits - 0x0 - unknown]
-                        DecimalToDecimalHex(game_state.number_of_teams), //number of teams
+                        flags,
+                        team_byte, //number of teams
                     };
 
                     TransmitPacket2(ref values);
@@ -1261,6 +1372,7 @@ namespace LazerTagHostLibrary
             case HostingState.HOSTING_STATE_CONFIRM_JOIN:
             {
                 if (now.CompareTo(state_change_timeout) > 0) {
+                    //TODO: Use COMMAND_CODE_RESEND_JOIN_CONFIRMATION
                     HostDebugWriteLine("No confirmation on timeout");
                     ChangeState(now, HostingState.HOSTING_STATE_ADDING);
                 }
@@ -1296,6 +1408,18 @@ namespace LazerTagHostLibrary
             {
                 if (now > state_change_timeout) {
                     ChangeState(now, HostingState.HOSTING_STATE_SUMMARY);
+                } else if (now >= next_announce) {
+
+                    switch (game_state.game_type) {
+                    case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+                        TransmitLTTOBytes(0x02,5);
+                        next_announce = now.AddMilliseconds(500);
+                        break;
+                    default:
+                        break;
+                    }
+#region TestData
+                    //TODO: Won't get called if next announce is not advanced
                 } else if (Console.KeyAvailable) {
                     char input = (char)Console.Read();
                     
@@ -1303,12 +1427,13 @@ namespace LazerTagHostLibrary
                         int player_number = input - '0';
                         
                         int damage = 0;
-                        Shoot(team_number, player_number, damage, true);
+                        Shoot(host_shot_team_number, player_number, damage, true);
                     } else {
-                        team_number = (team_number % 3) + 1;
-                        HostDebugWriteLine("Host gun set to shoot for team: " + team_number);
+                        host_shot_team_number = (host_shot_team_number % 3) + 1;
+                        HostDebugWriteLine("Host gun set to shoot for team: " + host_shot_team_number);
                     }
                 }
+#endregion
                 break;
             }
             case HostingState.HOSTING_STATE_SUMMARY:
@@ -1388,5 +1513,69 @@ namespace LazerTagHostLibrary
                 break;
             }
         }
+
+
+        public void AddListener(HostChangedListener listener) {
+            this.listener = listener;
+        }
+
+        public HostGun(string device, HostChangedListener l) {
+            if (device != null) {
+                serial_port = new SerialPort(device, 115200);
+                serial_port.Parity = Parity.None;
+                serial_port.StopBits = StopBits.One;
+                serial_port.Open();
+            }
+            this.listener = l;
+        }
+
+        public bool SetDevice(string device) {
+            if (serial_port != null && serial_port.IsOpen) {
+                serial_port.Close();
+            }
+            serial_port = null;
+             if (device != null) {
+                try {
+                    SerialPort sp = new SerialPort(device, 115200);
+                    sp.Parity = Parity.None;
+                    sp.StopBits = StopBits.One;
+                    sp.Open();
+
+                    serial_port = sp;
+
+                } catch (Exception ex) {
+                    HostDebugWriteLine(ex.ToString());
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public HostingState GetGameState() {
+            return hosting_state;
+        }
+
+        public bool IsTeamGame() {
+            switch (game_state.game_type) {
+            case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
+                return false;
+            case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+            case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
+                return true;
+            default:
+                HostDebugWriteLine("Unknown game type");
+                return false;
+            }
+        }
+
+
+#endregion
     }
 }

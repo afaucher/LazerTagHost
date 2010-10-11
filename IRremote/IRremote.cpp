@@ -187,6 +187,25 @@ void IRsend::sendPHOENIX_LTX(unsigned long data, int nbits) {
   }
 }
 
+void IRsend::sendLTTO(unsigned long data, int nbits) {
+  enableIROut(36);
+  //HEAD
+  mark(LTTO_HDR_MARK_ONE);
+  space(LTTO_HDR_SPACE);
+  mark(LTTO_HDR_MARK_TWO);
+  
+  int i = 0;
+  for (i = 0; i < nbits; i++) {
+    space(LTTO_SPACE);
+    byte current_bit = (data >> (nbits - i - 1)) & 0x1;
+    if (current_bit) {
+      mark(LTTO_ONE_MARK);
+    } else {
+      mark(LTTO_ZERO_MARK);    
+    }
+  }
+}
+
 void IRsend::mark(int time) {
   // Sends an IR mark for the specified number of microseconds.
   // The mark output is modulated at the PWM frequency.

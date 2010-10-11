@@ -8,7 +8,7 @@
     <widget-library name="glade-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
     <widget-library name="../bin/Debug/LazerTagHost-UI.exe" internal="true" />
   </import>
-  <widget class="Gtk.Window" id="MainWindow" design-size="506 492">
+  <widget class="Gtk.Window" id="MainWindow" design-size="506 516">
     <property name="MemberName" />
     <property name="Title" translatable="yes">Lazer Tag Host</property>
     <property name="WindowPosition">CenterOnParent</property>
@@ -20,7 +20,7 @@
         <child>
           <widget class="Gtk.Table" id="table1">
             <property name="MemberName" />
-            <property name="NRows">10</property>
+            <property name="NRows">11</property>
             <property name="NColumns">2</property>
             <property name="Homogeneous">True</property>
             <property name="RowSpacing">6</property>
@@ -33,14 +33,15 @@
                 <property name="MemberName" />
                 <property name="Sensitive">False</property>
                 <property name="CanFocus">True</property>
-                <property name="Type">TextOnly</property>
-                <property name="Label" translatable="yes">Start</property>
+                <property name="Type">TextAndIcon</property>
+                <property name="Icon">stock:gtk-apply Menu</property>
+                <property name="Label" translatable="yes">_Start</property>
                 <property name="UseUnderline">True</property>
                 <signal name="Clicked" handler="StartGameType" />
               </widget>
               <packing>
-                <property name="TopAttach">9</property>
-                <property name="BottomAttach">10</property>
+                <property name="TopAttach">10</property>
+                <property name="BottomAttach">11</property>
                 <property name="LeftAttach">1</property>
                 <property name="RightAttach">2</property>
                 <property name="AutoSize">True</property>
@@ -56,31 +57,6 @@
             </child>
             <child>
               <widget class="Gtk.CheckButton" id="checkbuttonFriendlyFire">
-                <property name="MemberName" />
-                <property name="CanFocus">True</property>
-                <property name="Label" translatable="yes" />
-                <property name="DrawIndicator">True</property>
-                <property name="HasLabel">True</property>
-                <property name="UseUnderline">True</property>
-              </widget>
-              <packing>
-                <property name="TopAttach">6</property>
-                <property name="BottomAttach">7</property>
-                <property name="LeftAttach">1</property>
-                <property name="RightAttach">2</property>
-                <property name="AutoSize">True</property>
-                <property name="XOptions">Fill</property>
-                <property name="YOptions">Fill</property>
-                <property name="XExpand">False</property>
-                <property name="XFill">True</property>
-                <property name="XShrink">False</property>
-                <property name="YExpand">False</property>
-                <property name="YFill">True</property>
-                <property name="YShrink">False</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="Gtk.CheckButton" id="checkbuttonMedicMode">
                 <property name="MemberName" />
                 <property name="CanFocus">True</property>
                 <property name="Label" translatable="yes" />
@@ -105,18 +81,46 @@
               </packing>
             </child>
             <child>
+              <widget class="Gtk.CheckButton" id="checkbuttonMedicMode">
+                <property name="MemberName" />
+                <property name="CanFocus">True</property>
+                <property name="Label" translatable="yes" />
+                <property name="DrawIndicator">True</property>
+                <property name="HasLabel">True</property>
+                <property name="UseUnderline">True</property>
+              </widget>
+              <packing>
+                <property name="TopAttach">8</property>
+                <property name="BottomAttach">9</property>
+                <property name="LeftAttach">1</property>
+                <property name="RightAttach">2</property>
+                <property name="AutoSize">True</property>
+                <property name="XOptions">Fill</property>
+                <property name="YOptions">Fill</property>
+                <property name="XExpand">False</property>
+                <property name="XFill">True</property>
+                <property name="XShrink">False</property>
+                <property name="YExpand">False</property>
+                <property name="YFill">True</property>
+                <property name="YShrink">False</property>
+              </packing>
+            </child>
+            <child>
               <widget class="Gtk.ComboBox" id="comboboxGameType">
                 <property name="MemberName" />
                 <property name="IsTextCombo">True</property>
-                <property name="Items" translatable="yes">Custom Laser Tag
+                <property name="Items" translatable="yes">Custom Laser Tag (Solo)
+Own The Zone (Solo)
 2-Team Customized Lazer Tag
 3-Team Customized Lazer Tag
 Hide And Seek
 Hunt The Prey
-2-Kings
-3-Kings
-Own The Zone</property>
-                <property name="Active">1</property>
+2-Team Kings
+3-Team Kings
+2-Team Own The Zone
+3-Team Own The Zone</property>
+                <property name="Active">0</property>
+                <signal name="Changed" handler="GameTypeChanged" />
               </widget>
               <packing>
                 <property name="TopAttach">1</property>
@@ -186,8 +190,8 @@ Own The Zone</property>
                 <property name="LabelProp" translatable="yes">Friendly Fire</property>
               </widget>
               <packing>
-                <property name="TopAttach">6</property>
-                <property name="BottomAttach">7</property>
+                <property name="TopAttach">7</property>
+                <property name="BottomAttach">8</property>
                 <property name="AutoSize">True</property>
                 <property name="XOptions">Fill</property>
                 <property name="YOptions">Fill</property>
@@ -205,8 +209,8 @@ Own The Zone</property>
                 <property name="LabelProp" translatable="yes">Medic Mode</property>
               </widget>
               <packing>
-                <property name="TopAttach">7</property>
-                <property name="BottomAttach">8</property>
+                <property name="TopAttach">8</property>
+                <property name="BottomAttach">9</property>
                 <property name="AutoSize">True</property>
                 <property name="XOptions">Fill</property>
                 <property name="YOptions">Fill</property>
@@ -224,8 +228,8 @@ Own The Zone</property>
                 <property name="LabelProp" translatable="yes">Number Of Teams</property>
               </widget>
               <packing>
-                <property name="TopAttach">8</property>
-                <property name="BottomAttach">9</property>
+                <property name="TopAttach">9</property>
+                <property name="BottomAttach">10</property>
                 <property name="AutoSize">True</property>
                 <property name="XOptions">Fill</property>
                 <property name="YOptions">Fill</property>
@@ -281,8 +285,27 @@ Own The Zone</property>
                 <property name="LabelProp" translatable="yes">Mega</property>
               </widget>
               <packing>
-                <property name="TopAttach">5</property>
-                <property name="BottomAttach">6</property>
+                <property name="TopAttach">6</property>
+                <property name="BottomAttach">7</property>
+                <property name="AutoSize">True</property>
+                <property name="XOptions">Fill</property>
+                <property name="YOptions">Fill</property>
+                <property name="XExpand">False</property>
+                <property name="XFill">True</property>
+                <property name="XShrink">False</property>
+                <property name="YExpand">False</property>
+                <property name="YFill">True</property>
+                <property name="YShrink">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="Gtk.Label" id="labelReloads">
+                <property name="MemberName" />
+                <property name="LabelProp" translatable="yes">Reloads</property>
+              </widget>
+              <packing>
+                <property name="TopAttach">3</property>
+                <property name="BottomAttach">4</property>
                 <property name="AutoSize">True</property>
                 <property name="XOptions">Fill</property>
                 <property name="YOptions">Fill</property>
@@ -300,8 +323,8 @@ Own The Zone</property>
                 <property name="LabelProp" translatable="yes">Sheild</property>
               </widget>
               <packing>
-                <property name="TopAttach">4</property>
-                <property name="BottomAttach">5</property>
+                <property name="TopAttach">5</property>
+                <property name="BottomAttach">6</property>
                 <property name="AutoSize">True</property>
                 <property name="XOptions">Fill</property>
                 <property name="YOptions">Fill</property>
@@ -319,8 +342,8 @@ Own The Zone</property>
                 <property name="LabelProp" translatable="yes">Tags</property>
               </widget>
               <packing>
-                <property name="TopAttach">3</property>
-                <property name="BottomAttach">4</property>
+                <property name="TopAttach">4</property>
+                <property name="BottomAttach">5</property>
                 <property name="AutoSize">True</property>
                 <property name="XOptions">Fill</property>
                 <property name="YOptions">Fill</property>
@@ -388,8 +411,8 @@ Own The Zone</property>
                 <property name="Value">10</property>
               </widget>
               <packing>
-                <property name="TopAttach">5</property>
-                <property name="BottomAttach">6</property>
+                <property name="TopAttach">6</property>
+                <property name="BottomAttach">7</property>
                 <property name="LeftAttach">1</property>
                 <property name="RightAttach">2</property>
                 <property name="AutoSize">True</property>
@@ -406,6 +429,7 @@ Own The Zone</property>
             <child>
               <widget class="Gtk.SpinButton" id="spinbuttonNumberOfTeams">
                 <property name="MemberName" />
+                <property name="Sensitive">False</property>
                 <property name="CanFocus">True</property>
                 <property name="Lower">1</property>
                 <property name="Upper">3</property>
@@ -416,8 +440,35 @@ Own The Zone</property>
                 <property name="Value">1</property>
               </widget>
               <packing>
-                <property name="TopAttach">8</property>
-                <property name="BottomAttach">9</property>
+                <property name="TopAttach">9</property>
+                <property name="BottomAttach">10</property>
+                <property name="LeftAttach">1</property>
+                <property name="RightAttach">2</property>
+                <property name="AutoSize">True</property>
+                <property name="XOptions">Fill</property>
+                <property name="YOptions">Fill</property>
+                <property name="XExpand">False</property>
+                <property name="XFill">True</property>
+                <property name="XShrink">False</property>
+                <property name="YExpand">False</property>
+                <property name="YFill">True</property>
+                <property name="YShrink">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="Gtk.SpinButton" id="spinbuttonReloads">
+                <property name="MemberName" />
+                <property name="CanFocus">True</property>
+                <property name="Upper">100</property>
+                <property name="PageIncrement">10</property>
+                <property name="StepIncrement">1</property>
+                <property name="ClimbRate">1</property>
+                <property name="Numeric">True</property>
+                <property name="Value">100</property>
+              </widget>
+              <packing>
+                <property name="TopAttach">3</property>
+                <property name="BottomAttach">4</property>
                 <property name="LeftAttach">1</property>
                 <property name="RightAttach">2</property>
                 <property name="AutoSize">True</property>
@@ -443,8 +494,8 @@ Own The Zone</property>
                 <property name="Value">30</property>
               </widget>
               <packing>
-                <property name="TopAttach">4</property>
-                <property name="BottomAttach">5</property>
+                <property name="TopAttach">5</property>
+                <property name="BottomAttach">6</property>
                 <property name="LeftAttach">1</property>
                 <property name="RightAttach">2</property>
                 <property name="AutoSize">True</property>
@@ -470,8 +521,8 @@ Own The Zone</property>
                 <property name="Value">10</property>
               </widget>
               <packing>
-                <property name="TopAttach">3</property>
-                <property name="BottomAttach">4</property>
+                <property name="TopAttach">4</property>
+                <property name="BottomAttach">5</property>
                 <property name="LeftAttach">1</property>
                 <property name="RightAttach">2</property>
                 <property name="AutoSize">True</property>
@@ -655,8 +706,39 @@ Own The Zone</property>
       <widget class="Gtk.HPaned" id="hpaned1">
         <property name="MemberName" />
         <property name="CanFocus">True</property>
-        <property name="Position">267</property>
+        <property name="Position">500</property>
         <property name="BorderWidth">6</property>
+        <child>
+          <widget class="Gtk.VBox" id="vboxPanel">
+            <property name="MemberName" />
+            <property name="Spacing">6</property>
+            <child>
+              <widget class="Gtk.Label" id="labelTitle">
+                <property name="MemberName" />
+                <property name="LabelProp" translatable="yes">Step Description Here</property>
+              </widget>
+              <packing>
+                <property name="Position">0</property>
+                <property name="AutoSize">True</property>
+                <property name="Expand">False</property>
+                <property name="Fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="LazerTagHostUI.PlayerSelector" id="playerselector">
+                <property name="MemberName" />
+                <property name="Events">ButtonPressMask</property>
+              </widget>
+              <packing>
+                <property name="Position">1</property>
+                <property name="AutoSize">False</property>
+              </packing>
+            </child>
+          </widget>
+          <packing>
+            <property name="Resize">False</property>
+          </packing>
+        </child>
         <child>
           <widget class="Gtk.VBox" id="vboxPlayerControls">
             <property name="MemberName" />
@@ -687,7 +769,9 @@ Raptor007
 ChubChub
 Nojoe
 Nein
-Sparhawk2k</property>
+Sparhawk2k
+Blue
+Gold</property>
               </widget>
               <packing>
                 <property name="Position">1</property>
@@ -748,7 +832,7 @@ Sparhawk2k</property>
                     <property name="CanFocus">True</property>
                     <property name="Type">TextAndIcon</property>
                     <property name="Icon">stock:gtk-apply Menu</property>
-                    <property name="Label" translatable="yes">Next</property>
+                    <property name="Label" translatable="yes">_Next</property>
                     <property name="UseUnderline">True</property>
                   </widget>
                   <packing>
@@ -765,7 +849,7 @@ Sparhawk2k</property>
                     <property name="CanFocus">True</property>
                     <property name="Type">TextAndIcon</property>
                     <property name="Icon">stock:stock_appointment-reminder Menu</property>
-                    <property name="Label" translatable="yes">Pause</property>
+                    <property name="Label" translatable="yes">_Pause</property>
                     <property name="UseUnderline">True</property>
                   </widget>
                   <packing>
@@ -782,7 +866,7 @@ Sparhawk2k</property>
                     <property name="CanFocus">True</property>
                     <property name="Type">TextAndIcon</property>
                     <property name="Icon">stock:gtk-cancel Menu</property>
-                    <property name="Label" translatable="yes">Abort Host</property>
+                    <property name="Label" translatable="yes">_Abort Host</property>
                     <property name="UseUnderline">True</property>
                   </widget>
                   <packing>
@@ -807,34 +891,6 @@ Sparhawk2k</property>
             <property name="Resize">False</property>
             <property name="Shrink">False</property>
           </packing>
-        </child>
-        <child>
-          <widget class="Gtk.VBox" id="vbox2">
-            <property name="MemberName" />
-            <property name="Spacing">6</property>
-            <child>
-              <widget class="Gtk.Label" id="labelTitle">
-                <property name="MemberName" />
-                <property name="LabelProp" translatable="yes">Step Description Here</property>
-              </widget>
-              <packing>
-                <property name="Position">0</property>
-                <property name="AutoSize">True</property>
-                <property name="Expand">False</property>
-                <property name="Fill">False</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="LazerTagHostUI.PlayerSelector" id="playerselector">
-                <property name="MemberName" />
-                <property name="Events">ButtonPressMask</property>
-              </widget>
-              <packing>
-                <property name="Position">1</property>
-                <property name="AutoSize">False</property>
-              </packing>
-            </child>
-          </widget>
         </child>
       </widget>
     </child>

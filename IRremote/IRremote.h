@@ -80,6 +80,8 @@ public:
   /*void sendRC5(unsigned long data, int nbits);
   void sendRC6(unsigned long data, int nbits);*/
   void sendPHOENIX_LTX(unsigned long data, int nbits);
+  void sendLTTO(unsigned long data, int nbits);
+  
   // private:
   void enableIROut(int khz);
   VIRTUAL void mark(int usec);

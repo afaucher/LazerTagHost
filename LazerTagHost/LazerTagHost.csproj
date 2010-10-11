@@ -21,7 +21,7 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <Externalconsole>true</Externalconsole>
-    <Commandlineparameters>/dev/ttyUSB0</Commandlineparameters>
+    <Commandlineparameters>/dev/ttyUSB1</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>

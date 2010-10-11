@@ -19,9 +19,7 @@ namespace LazerTagHost
             }
             
             HostGun hg = new HostGun(args[0], null);
-            hg.autostart = true;
-            
-            //hg.RunRankTests();
+            //hg.StartGameNow();
             
             while (true) {
                 
