@@ -177,7 +177,6 @@ namespace LazerTagHostLibrary
                         }
                         if (!found) {
                             dest_player.team_index = team_index;
-                            //TODO: Fix mapping so team_number == 0 for solo
                             dest_player.team_number = team_index + 1;
                             dest_player.player_number = player_number;
                             return true;
@@ -569,7 +568,6 @@ namespace LazerTagHostLibrary
                     team_response, //player #
                     // [3 bits - zero - unknown][2 bits - team assignment][3 bits - player assignment]
                 };
-                //TODO: Solo asignment is 0x08...0x20 (increment by one)
                 
                 if (game_id_packet.data != game_id) {
                     HostDebugWriteLine("Game id does not match current game, discarding");
@@ -938,7 +936,7 @@ namespace LazerTagHostLibrary
                     int score = - p.damage;
                     int team_index = 0;
                     int player_index = 0;
-                    //TODO: test
+                    //TODO: test to make sure scoring works accurately
                     for (team_index = 0; team_index < 3; team_index++) {
                         for (player_index = 0; player_index < 8; player_index++) {
                             if (p.team_index == team_index) {
