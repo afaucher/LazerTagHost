@@ -38,6 +38,7 @@
     <Compile Include="IRPacket.cs" />
     <Compile Include="HostGun.cs" />
     <Compile Include="LazerTagSerial.cs" />
+    <Compile Include="PacketPacker.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

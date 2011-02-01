@@ -42,7 +42,7 @@ public partial class MainWindow : Gtk.Window
 
     private void SetTranscieverStatusImage(string gtk_name)
     {
-        imageTransceiverStatus.Pixbuf = Stetic.IconLoader.LoadIcon(this, gtk_name, Gtk.IconSize.Menu, 16);
+        imageTransceiverStatus.Pixbuf = Stetic.IconLoader.LoadIcon(this, gtk_name, Gtk.IconSize.Menu);
     }
 
     protected virtual void TransceiverChanged (object sender, System.EventArgs e)
