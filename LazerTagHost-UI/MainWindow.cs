@@ -70,7 +70,6 @@ public partial class MainWindow : Gtk.Window
 
     protected void StartGameType (object sender, System.EventArgs e)
     {
-
         hg.DynamicHostMode(game_type,
                         ConvertGameValue(spinbuttonGameTime.ValueAsInt),
                         ConvertGameValue(spinbuttonTags.ValueAsInt),
@@ -81,6 +80,7 @@ public partial class MainWindow : Gtk.Window
                         this.checkbuttonMedicMode.Active,
                         ConvertGameValue(spinbuttonNumberOfTeams.ValueAsInt));
 
+        hg.SetGameStartCountdownTime(spinbuttonCountdownTime.ValueAsInt);
         hg.StartServer();
         hw.Show();
     }

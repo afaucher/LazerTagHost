@@ -1,9 +1,9 @@
-
 using System;
 using System.IO.Ports;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Collections;
+
 
 namespace LazerTagHostLibrary
 {
@@ -24,6 +24,7 @@ namespace LazerTagHostLibrary
         private struct GameState {
             public CommandCode game_type;
             public byte game_time_minutes;
+            public int game_start_countdown_seconds;
             public byte tags;
             public byte reloads;
             public byte sheild;
@@ -61,6 +62,7 @@ namespace LazerTagHostLibrary
             COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST = 0x09, //Solo
             COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST = 0x0A,
             COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST = 0x0B,
+            COMMAND_CODE_SPECIAL_GAME_DEFINITION = 0x0C,
 
             COMMAND_CODE_PLAYER_JOIN_GAME_REQUEST = 0x10,
             COMMAND_CODE_ACK_PLAYER_JOIN_RESPONSE = 0x01,
@@ -80,8 +82,7 @@ namespace LazerTagHostLibrary
 
             COMMAND_CODE_GAME_OVER = 0x32,
 
-
-
+            COMMAND_CODE_TEXT_MESSAGE = 0x80,
         };
         
         private byte game_id = 0x00;
@@ -89,7 +90,7 @@ namespace LazerTagHostLibrary
         private SerialPort serial_port = null;
         private const int ADDING_ADVERTISEMENT_INTERVAL_SECONDS = 3;
         private const int WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS = 100;
-        private const int GAME_START_COUNTDOWN_INTERVAL_SECONDS = 10;
+        //private const int GAME_START_COUNTDOWN_INTERVAL_SECONDS = 10;
         private const int GAME_TIME_DURATION_MINUTES = 1;
         private const int MINIMUM_PLAYER_COUNT_START = 2;
         private const int GAME_START_COUNTDOWN_ADVERTISEMENT_INTERVAL_SECONDS = 1;
@@ -119,7 +120,6 @@ namespace LazerTagHostLibrary
 
 #region TestData
         private int host_shot_team_number = 1;
-        private int join_count = 0;
 #endregion
         
         private void BaseGameSet(byte game_time_minutes, 
@@ -138,6 +138,10 @@ namespace LazerTagHostLibrary
             game_state.team_tag = team_tag;
             game_state.medic_mode = medic_mode;
             game_id = (byte)(new Random().Next());
+        }
+
+        public void SetGameStartCountdownTime(int game_start_countdown_seconds) {
+            game_state.game_start_countdown_seconds = game_start_countdown_seconds;
         }
 
         private static string GetCommandCodeName(CommandCode code)
@@ -266,6 +270,18 @@ namespace LazerTagHostLibrary
             
             return true;
         }
+
+        private void AssertUnknownBits(String name, IRPacket data, byte mask)
+        {
+            if (((byte)data.data & mask) != 0x00) {
+                string debug = String.Format("Unknown bits set: \"{0:s}\" unknown: {1:x} data: {2:x} mask {3:x}",
+                                             name,
+                                             (byte)data.data & mask,
+                                             (byte)data.data,
+                                             mask);
+                HostDebugWriteLine(debug);
+            }
+        }
         
         private bool ProcessPlayerReportScore()
         {
@@ -279,14 +295,17 @@ namespace LazerTagHostLibrary
             
             IRPacket damage_recv_packet = incoming_packet_queue[3]; //decimal hex
             IRPacket still_alive_packet = incoming_packet_queue[4]; //[7 bits - zero - unknown][1 bit - alive]
+            AssertUnknownBits("still_alive_packet",incoming_packet_queue[4],0xfe);
 
             IRPacket unknown_one = incoming_packet_queue[5];
+            AssertUnknownBits("unknown_one",unknown_one,0xff);
             IRPacket zone_time_minutes_packet = incoming_packet_queue[6];
             IRPacket zone_time_seconds_packet = incoming_packet_queue[7];
 
             
             //[4 bits - zero - unknown][1 bit - hit by t3][1 bit - hit by t2][1 bit - hit by t1][1 bit - zero - unknown]
-            IRPacket team_hit_report = incoming_packet_queue[8]; 
+            IRPacket team_hit_report = incoming_packet_queue[8];
+            AssertUnknownBits("team_hit_report",team_hit_report,0xf9);
             
             UInt16 confirmed_game_id = game_id_packet.data;
             UInt16 player_index = player_index_packet.data;
@@ -312,7 +331,7 @@ namespace LazerTagHostLibrary
                     found = true;
                     p.debriefed = true;
                     
-                    p.alive = (still_alive_packet.data == 0x01);
+                    p.alive = ((still_alive_packet.data & 0x01) == 0x01);
                     p.damage = DecimalHexToDecimal(damage_recv_packet.data);
                     p.has_score_report_for_team[0] = (team_hit_report.data & 0x2) != 0;
                     p.has_score_report_for_team[1] = (team_hit_report.data & 0x4) != 0;
@@ -351,6 +370,12 @@ namespace LazerTagHostLibrary
             IRPacket game_id_packet = incoming_packet_queue[1];
             IRPacket player_id_packet = incoming_packet_queue[2];
             IRPacket score_bitmask_packet = incoming_packet_queue[3];
+            /*AssertUnknownBits("incoming_packet_queue[4]",incoming_packet_queue[4],0xff);
+            AssertUnknownBits("incoming_packet_queue[5]",incoming_packet_queue[5],0xff);
+            AssertUnknownBits("incoming_packet_queue[6]",incoming_packet_queue[6],0xff);
+            AssertUnknownBits("incoming_packet_queue[7]",incoming_packet_queue[7],0xff);
+            AssertUnknownBits("incoming_packet_queue[8]",incoming_packet_queue[8],0xff);
+            AssertUnknownBits("incoming_packet_queue[9]",incoming_packet_queue[9],0xff);*/
             
             //what team do the scores relate to hits from
             int team_index = ((int)command_packet.data - (int)CommandCode.COMMAND_CODE_PLAYER_HIT_BY_TEAM_1_REPORT);
@@ -846,7 +871,8 @@ namespace LazerTagHostLibrary
             case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
             case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
             {
-                SortedList<int, Player> rankings = new SortedList<int, Player>();
+                SortedList<int, Player> rankings =
+                    new SortedList<int, Player>();
                 //for team score
                 int[] team_zone_time = new int[3] { 0,0,0, };
                 //rank for each team
@@ -856,13 +882,14 @@ namespace LazerTagHostLibrary
                     p.score = p.zone_time;
 
                     int score = p.zone_time;
-                    score = score << 8 | p.player_id;
+                    score = (int.MaxValue - score) << 8 | p.player_id;
                     rankings.Add(score, p);
 
                     team_zone_time[p.team_index] += p.zone_time;
                 }
 
                 //Determine PlayerRanks
+                //TODO: Check if this sort order needs reversing
                 int rank = 0;
                 int last_score = 99;
                 foreach(KeyValuePair<int, Player> e in rankings) {
@@ -1050,7 +1077,7 @@ namespace LazerTagHostLibrary
             case HostingState.HOSTING_STATE_COUNTDOWN:
                 if (hosting_state != HostGun.HostingState.HOSTING_STATE_ADDING) return false;
                 HostDebugWriteLine("Starting countdown");
-                state_change_timeout = now.AddSeconds(GAME_START_COUNTDOWN_INTERVAL_SECONDS);
+                state_change_timeout = now.AddSeconds(game_state.game_start_countdown_seconds);
                 break;
             case HostingState.HOSTING_STATE_ADDING:
                 HostDebugWriteLine("Joining players");
@@ -1402,48 +1429,74 @@ namespace LazerTagHostLibrary
                     
                     incoming_packet_queue.Clear();
 
-                    //[3 bits - b001 - unknown][1 bit - team tag][1 bit - medic mode][3 bits - 0x0 - unknown]
-                    byte flags = 0x00;
-                        flags |= game_state.medic_mode ? (byte)0x08 : (byte)0x00;
-                        flags |= game_state.team_tag ? (byte)0x10 : (byte)0x00;
+                    bool extended_tagging = false;
+                    bool unlimited_ammo = game_state.reloads == 0xff;
+                    HostDebugWriteLine("unlimited_ammo " + game_state.reloads + ", " + unlimited_ammo);
+                    bool unlimited_mega = game_state.mega == 0xff;
+                    HostDebugWriteLine("unlimited_mega " + game_state.mega + ", " + unlimited_mega);
+                    bool friendly_fire = game_state.team_tag;
+                    bool medic_mode = game_state.medic_mode;
+                    bool rapid_tags = false;
+                    bool hunters_hunted = false;
+                    bool hunters_hunted_direction = false;
 
-                    byte team_byte = DecimalToDecimalHex(game_state.number_of_teams);
+                    bool zones = false;
+                    bool bases_are_teams = false;
+                    bool tagged_players_are_disabled = false;
+                    bool base_areas_revive_players = false;
+                    bool base_areas_are_hospitals = false;
+                    bool base_areas_fire_at_players = false;
 
                     switch (game_state.game_type) {
                     case CommandCode.COMMAND_CODE_2TMS_GAME_MODE_HOST:
                     case CommandCode.COMMAND_CODE_3TMS_GAME_MODE_HOST:
                     case CommandCode.COMMAND_CODE_CUSTOM_GAME_MODE_HOST:
-                        flags |= 0x20; //unknown
+                    case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
+                    case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
                         break;
                     case CommandCode.COMMAND_CODE_OWN_THE_ZONE_GAME_MODE_HOST:
                     case CommandCode.COMMAND_CODE_2TMS_OWN_THE_ZONE_GAME_MODE_HOST:
                     case CommandCode.COMMAND_CODE_3TMS_OWN_THE_ZONE_GAME_MODE_HOST:
-                        flags |= 0x60; //unknown
-                        team_byte |= 0xA0; //unknown
-                        break;
-                    case CommandCode.COMMAND_CODE_3_KINGS_GAME_MODE_HOST:
-                    case CommandCode.COMMAND_CODE_2_KINGS_GAME_MODE_HOST:
-                        flags |= 0x60; //unknown
+                        zones = true;
+                        tagged_players_are_disabled = true;
+                        friendly_fire = true;
+                        medic_mode = true;
                         break;
                     case CommandCode.COMMAND_CODE_HIDE_AND_SEEK_GAME_MODE_HOST:
                     case CommandCode.COMMAND_CODE_HUNT_THE_PREY_GAME_MODE_HOST:
-                        flags |= 0x62;
+                        hunters_hunted = true;
                         break;
                     default:
                         break;
                     }
-                    
-                    UInt16[] values = new UInt16[]{
-                        (UInt16)game_state.game_type,
-                        game_id,//Game ID
-                        DecimalToDecimalHex(game_state.game_time_minutes), //game time minutes
-                        DecimalToDecimalHex(game_state.tags), //tags
-                        DecimalToDecimalHex(game_state.reloads), //reloads
-                        DecimalToDecimalHex(game_state.sheild), //sheild
-                        DecimalToDecimalHex(game_state.mega), //mega
-                        flags,
-                        team_byte, //number of teams
-                    };
+
+                    UInt16[] values = PacketPacker.packGameDefinition(game_state.game_type,
+                        game_id,
+                        game_state.game_time_minutes,
+                        game_state.tags,
+                        game_state.reloads,
+                        game_state.sheild,
+                        game_state.mega,
+
+                        extended_tagging,
+                        unlimited_ammo,
+                        unlimited_mega,
+                        friendly_fire,
+                        medic_mode,
+                        rapid_tags,
+                        hunters_hunted,
+                        hunters_hunted_direction,
+
+                        zones,
+                        bases_are_teams,
+                        tagged_players_are_disabled,
+                        base_areas_revive_players,
+                        base_areas_are_hospitals,
+                        base_areas_fire_at_players,
+
+                        game_state.number_of_teams,
+                        null); //new char[] {'D','U','C','K'}
+
 
                     TransmitPacket2(ref values);
                     
