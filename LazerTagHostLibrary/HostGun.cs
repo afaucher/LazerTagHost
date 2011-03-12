@@ -87,7 +87,7 @@ namespace LazerTagHostLibrary
         
         private byte game_id = 0x00;
         
-        private SerialPort serial_port = null;
+        private LazerTagSerial ltz = null;
         private const int ADDING_ADVERTISEMENT_INTERVAL_SECONDS = 3;
         private const int WAIT_FOR_ADDITIONAL_PLAYERS_TIMEOUT_SECONDS = 100;
         //private const int GAME_START_COUNTDOWN_INTERVAL_SECONDS = 10;
@@ -702,7 +702,7 @@ namespace LazerTagHostLibrary
             {
                 if ((data & 0x100) != 0) {
                     //end sequence
-                    if ((data & 0xff) == ComputeChecksum(ref incoming_packet_queue)) {
+                    if ((data & 0xff) == LazerTagSerial.ComputeChecksum(ref incoming_packet_queue)) {
                         HostDebugWriteLine("Command: (" 
                                                      + GetCommandCodeName((CommandCode)(incoming_packet_queue[0].data)) 
                                                      + ") " 
@@ -769,50 +769,20 @@ namespace LazerTagHostLibrary
 
 #region SerialProtocol
 
-
         private void TransmitPacket2(ref UInt16[] values)
         {
-            string debug = "TX: (";
-
-            debug += ((CommandCode)(values[0])).ToString() + ") ";
-
-            for (int i = 0; i < values.Length; i++) {
-                UInt16 packet = values[i];
-                TransmitBytes(packet,(UInt16)(i == 0 ? 9 : 8));
-                debug += String.Format("{0:x},", packet);
-            }
-            UInt16 checksum = ComputeChecksum2(ref values);
-            checksum |= 0x100;
-            TransmitBytes(checksum,9);
-
-            HostDebugWriteLine(debug);
+            ltz.TransmitPacket(ref values);
         }
 
         private void TransmitBytes(UInt16 data, UInt16 number_of_bits)
         {
-            byte[] packet = new byte[2] {
-                (byte)((0x00 << 5) | (number_of_bits << 1) | ((data >> 8) & 0x1)),
-                (byte)(data & 0xff),
-            };
-            serial_port.Write( packet, 0, 2 );
-            serial_port.BaseStream.Flush();
-
-            System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILISECONDS);
+            ltz.EnqueueLTX(data,number_of_bits);
         }
 
         private void TransmitLTTOBytes(UInt16 data, UInt16 number_of_bits)
         {
-            byte[] packet = new byte[2] {
-                (byte)((0x01 << 5) | ((number_of_bits & 0xf) << 1) | ((data >> 8) & 0x1)),
-                (byte)(data & 0xff),
-            };
-            serial_port.Write( packet, 0, 2 );
-            serial_port.BaseStream.Flush();
-            HostDebugWriteLine(String.Format("TX/LTTO: {0:d},{1:x} Packet: 0x{2:x},0x{3:x}", number_of_bits, data,packet[0],packet[1]));
-
-            System.Threading.Thread.Sleep(INTER_PACKET_BYTE_DELAY_MILISECONDS);
+            ltz.EnqueueLTTO(data,number_of_bits);
         }
-
 
         static private string SerializeCommandSequence(ref List<IRPacket> packets)
         {
@@ -822,7 +792,6 @@ namespace LazerTagHostLibrary
             }
             return command;
         }
-
 
         static private byte DecimalToDecimalHex(byte d)
         {
@@ -838,28 +807,6 @@ namespace LazerTagHostLibrary
             int ret = d & 0x0f;
             ret += ((d >> 4) & 0xf) * 10;
             return ret;
-        }
-
-        static private byte ComputeChecksum2(ref UInt16[]values)
-        {
-            int i = 0;
-            byte sum = 0;
-            for (i = 0; i < values.Length; i++) {
-                sum += (byte)values[i];
-            }
-            return sum;
-        }
-
-        static private byte ComputeChecksum(ref List<IRPacket> values)
-        {
-            byte sum = 0;
-            foreach (IRPacket packet in values) {
-                //don't add the checksum value in
-                if ((packet.data & 0x100) == 0) {
-                    sum += (byte)packet.data;
-                }
-            }
-            return sum;
         }
 
 #endregion
@@ -1389,14 +1336,11 @@ namespace LazerTagHostLibrary
             PrintScoreReport();
         }
 
-
         public void Update() {
             DateTime now = DateTime.Now;
             
-            if (serial_port == null || !serial_port.IsOpen) {
-                return;
-            } else if (serial_port.BytesToRead > 0) {
-                string input = serial_port.ReadLine();
+            if (ltz != null) {
+                string input = ltz.TryReadCommand();
                 
                 int command_length = input.IndexOf(':');
                 if (command_length > 0) {
@@ -1407,7 +1351,6 @@ namespace LazerTagHostLibrary
                     string[] paramters = paramters_line.Split(',');
                     
                     ProcessMessage(command, paramters);
-                    
                 } else {
                     HostDebugWriteLine("DEBUG: " + input);
                 }
@@ -1662,29 +1605,18 @@ namespace LazerTagHostLibrary
         }
 
         public HostGun(string device, HostChangedListener l) {
-            if (device != null) {
-                serial_port = new SerialPort(device, 115200);
-                serial_port.Parity = Parity.None;
-                serial_port.StopBits = StopBits.One;
-                serial_port.Open();
-            }
+            ltz = new LazerTagSerial(device);
             this.listener = l;
         }
 
         public bool SetDevice(string device) {
-            if (serial_port != null && serial_port.IsOpen) {
-                serial_port.Close();
+            if (ltz != null) {
+                ltz.Stop();
+                ltz = null;
             }
-            serial_port = null;
-             if (device != null) {
+            if (device != null) {
                 try {
-                    SerialPort sp = new SerialPort(device, 115200);
-                    sp.Parity = Parity.None;
-                    sp.StopBits = StopBits.One;
-                    sp.Open();
-
-                    serial_port = sp;
-
+                    ltz = new LazerTagSerial(device);
                 } catch (Exception ex) {
                     HostDebugWriteLine(ex.ToString());
                     return false;
